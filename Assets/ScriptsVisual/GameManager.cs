@@ -12,8 +12,9 @@ namespace Incteractive
 		public GameObject timeline;
 		public Transform playhead;
 		public Collider timelineCollider;
-		public Collider waitButtonCollider;
-		public Collider undoButtonCollider;
+		public Button waitButton;
+		public Button undoButton;
+		public MeshRenderer playheadRenderer;
 
 //		public MouseEvents playheadMouseEvents;
 		public Location timeMachine;
@@ -57,13 +58,16 @@ namespace Incteractive
 			GameObject newPlayer = Instantiate (characterPrefab, currentLevel.initialLocation.transform.position, Quaternion.LookRotation(Vector3.back));
 			currentPlayer = newPlayer.GetComponent<Character> ();
 
-			Vector3 trackPos = timeline.transform.position;
-			trackPos += timeline.transform.up * (characters.Count - 1) * -0.5f;
-
-			GameObject newTimelineTrack = Instantiate (characterTimelinePrefab, trackPos, timeline.transform.rotation);
+			GameObject newTimelineTrack = Instantiate (characterTimelinePrefab, timeline.transform.position, timeline.transform.rotation);
 			newTimelineTrack.transform.parent = timeline.transform;
 
-			currentPlayer.Setup (initialLocation, playerMaterials[characters.Count % playerMaterials.Length], newTimelineTrack.transform);
+			Vector3 trackPosLocal = Vector3.zero;
+			trackPosLocal.y = characters.Count * -0.75f;
+			newTimelineTrack.transform.localPosition = trackPosLocal;
+
+			Material material = playerMaterials [characters.Count % playerMaterials.Length];
+			currentPlayer.Setup (initialLocation, material, newTimelineTrack.transform);
+			playheadRenderer.material = material;
 
 			characters.Add (currentPlayer);		
 		}
@@ -115,7 +119,6 @@ namespace Incteractive
 			if (draggingPlayhead) 
 			{
 				Ray mouseRay = Camera.main.ScreenPointToRay (Input.mousePosition);
-
 				float nextPlayheadPos = currentTime;
 
 				RaycastHit hit;
@@ -154,9 +157,10 @@ namespace Incteractive
 //					playheadMouseDown = false;
 
 					currentTime = Mathf.FloorToInt (nextPlayheadPos);//mouseLocalPos.x);
-					timeForNextDecision = currentTime;
 
-					UndoActions ();
+					//timeForNextDecision = currentTime;
+
+					//UndoActions ();
 				}
 				else 
 				{
@@ -189,7 +193,7 @@ namespace Incteractive
 				}
 
 				//Make Decisions
-				if (timeForNextDecision > currentTime) 
+				if (timeForNextDecision > currentTime && currentTimeInterpolated == currentTime) 
 				{
 					currentTime++;
 					//Progress ();
@@ -250,12 +254,66 @@ namespace Incteractive
 			for (int i = 0; i < characters.Count; i++) 
 			{
 				Character character = characters [i];	
-				character.UpdateCharacter (currentTime, currentTimeInterpolated, character == currentPlayer, draggingPlayhead);
+				character.UpdateCharacter (currentTime, currentTimeInterpolated, timeForNextDecision, character == currentPlayer, draggingPlayhead);
 			}
 		}
 
 		void MouseInput()
 		{
+			if (Input.GetMouseButton (0)) 
+			{	
+				Ray mouseRay = Camera.main.ScreenPointToRay (Input.mousePosition);
+				RaycastHit[] hits = Physics.RaycastAll (mouseRay, 100);
+
+				if (hits.Length > 0) 
+				{
+					for (int i = 0, length = hits.Length; i < length; i++) 
+					{
+						Collider hitCollider = hits [i].collider;
+						Transform hitTransform = hitCollider.gameObject.transform;
+
+						if (hitCollider == waitButton.collider && currentTimeInterpolated == timeForNextDecision ) 
+						{
+							if (currentTime < 23) 
+							{
+								int time = currentPlayer.GetNextActionTime ();
+
+								Action actionWait = new ActionWait (time, 1);
+								AddAction (actionWait);
+							}
+
+							waitButton.Toggle (true);
+
+							break;
+						}
+
+						if (hitCollider == undoButton.collider && currentTimeInterpolated == timeForNextDecision) 
+						{
+							if (currentTime > 0) 
+							{
+								currentTime--;
+								timeForNextDecision = currentTime;
+							}
+
+							undoButton.Toggle (true);
+
+							break;
+						}
+					}
+				}
+			}
+			else 
+			{
+				if (currentTimeInterpolated == timeForNextDecision) 
+				{
+					if (waitButton.value)
+						waitButton.Toggle (false);
+
+					if (undoButton.value)
+						undoButton.Toggle (false);
+				}				
+			}
+
 			if (Input.GetMouseButtonDown (0)) 
 			{	
 				Ray mouseRay = Camera.main.ScreenPointToRay (Input.mousePosition);
@@ -285,26 +343,26 @@ namespace Incteractive
 								break;
 						}
 
-						if (hitCollider == waitButtonCollider) 
-						{
-							int time = currentPlayer.GetNextActionTime ();
+//						if (hitCollider == waitButtonCollider) 
+//						{
+//							int time = currentPlayer.GetNextActionTime ();
+//
+//							Action actionWait = new ActionWait (time, 1);
+//							AddAction (actionWait);
+//
+//							break;
+//						}
 
-							Action actionWait = new ActionWait (time, 1);
-							AddAction (actionWait);
-
-							break;
-						}
-
-						if (hitCollider == undoButtonCollider) 
-						{
-							if (currentTime > 0) 
-							{
-								currentTime--;
-								timeForNextDecision = currentTime;
-							}
-
-							break;
-						}
+//						if (hitCollider == undoButtonCollider) 
+//						{
+//							if (currentTime > 0) 
+//							{
+//								currentTime--;
+//								timeForNextDecision = currentTime;
+//							}
+//
+//							break;
+//						}
 						//Debug.Log (hits [i].collider.gameObject.name);	
 					}
 

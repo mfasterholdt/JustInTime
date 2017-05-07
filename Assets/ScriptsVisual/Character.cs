@@ -119,7 +119,86 @@ namespace Incteractive
 			return 0;
 		}
 
-		public float GetTrackEnd(int currentTime, float currentTimeInterpolated, bool currentPlayer, bool draggingPlayhead)
+		public float GetTrackEnd(int currentTime, float currentTimeInterpolated, int timeForNextDecision, bool currentPlayer, bool draggingPlayhead)
+		{
+			float result = 0f;
+			bool foundAction = false;
+
+			if (history.Count > 0) 
+			{
+				for (int i = history.Count - 1; i >= 0; i--) 
+				{
+					Action action = history[i];
+
+					Location location = GetLocationAtTime (action.time);
+					if (location.isTimeMachine == false) 
+					{
+						result = action.time + action.duration;
+						foundAction = true;
+						break;
+					}
+				}
+			}
+
+
+			if (currentPlayer)
+			{
+				if(draggingPlayhead) 
+				{
+					if(currentTimeInterpolated > result)
+						result = currentTimeInterpolated;
+				}
+				else
+				{	
+					if (timeForNextDecision > currentTimeInterpolated) 
+					{	
+						if (currentTime < timeForNextDecision) 
+						{
+//							if (currentTimeInterpolated < currentTime) 
+//							{
+//								result = timeForNextDecision;		
+//							}
+							//if(currentTime - 1 
+						}
+						else 
+						{
+							result = currentTimeInterpolated;
+						}
+
+//						if (foundAction)
+//						{
+//							
+//							Debug.Log (foundAction);
+//						}
+//						else 
+//						{
+//							result = currentTimeInterpolated;
+//						}
+//						if (currentTime < timeForNextDecision) 
+//						{
+//							result = currentTimeInterpolated;
+//						}
+//						else
+//						{
+//							result = timeForNextDecision;
+//
+//						}
+//						else 
+//						{
+//							result = currentTimeInterpolated;
+//						}
+					}
+					else if (currentTimeInterpolated > currentTime) 
+					{
+						result = currentTimeInterpolated;
+					}
+				}
+			}
+
+			return result;
+		}
+
+		public float GetTrackEndOld(int currentTime, float currentTimeInterpolated, bool currentPlayer, bool draggingPlayhead)
 		{
 			float result = 0;
 
@@ -232,9 +311,10 @@ namespace Incteractive
 			return result;
 		}
 
-		public void UpdateCharacter(int currentTime, float currentTimeInterpolated, bool currentPlayer, bool draggingPlayhead)
+		public void UpdateCharacter(int currentTime, float currentTimeInterpolated, int timeForNextDecision, bool currentPlayer, bool draggingPlayhead)
 		{
 			Vector3 pos = initialLocation.transform.position;
+
 			Vector3 forward = Vector3.back;
 
 			if (history.Count > 0) 
@@ -247,7 +327,7 @@ namespace Incteractive
 					Action action = history [i];
 					ActionEnter actionEnter = history [i] as ActionEnter;
 
-					if (currentTimeInterpolated > action.time + 1) 
+					if (currentTimeInterpolated >= action.time + 1) 
 					{	
 						if (actionEnter != null) 
 						{
@@ -265,8 +345,8 @@ namespace Incteractive
 							pos = Vector3.Lerp (fromPos, toPos, diff);
 
 							if (currentTime != currentTimeInterpolated) 
-							{
-								forward = toPos - fromPos;
+							{				
+								forward = (toPos - fromPos).normalized;
 							}
 						}
 
@@ -274,183 +354,47 @@ namespace Incteractive
 					}
 				}
 
+				//Rotation
+//				Debug.Log(Mathf.Abs(currentTime-currentTimeInterpolated));
+//				if (currentPlayer == false && currentTime==currentTimeInterpolated) 
+				if (currentPlayer == false && Mathf.Abs(currentTime-currentTimeInterpolated) < 0.05f) 
+				{
+					Location location = GetLocationAtTime (currentTime - 1);
+					Location nextLocation = GetLocationAtTime (currentTime);
+
+					if (location != nextLocation)
+					{
+						Vector3 fromPos = location.transform.position;
+						Vector3 toPos = nextLocation.transform.position;
+						forward = (toPos - fromPos).normalized;
+					}
+//					else 
+//					{
+//						forward = Vector3.back;
+//					}
+				}
+
+//				if (currentPlayer == false) 
+//				{
+//					ActionEnter actionEnter = GetAction (currentTime + 1) as ActionEnter;
+//
+//					if (actionEnter != null) 
+//					{
+//						Vector3 fromPos = fromLocation.transform.position;
+//						Vector3 toPos = actionEnter.location.transform.position;
+//
+//						if (currentTime != currentTimeInterpolated) 
+//						{				
+//							forward = (toPos - fromPos).normalized;
+//						}
+//					}
+//				}
 			}
 
 			float trackStart = GetTrackStart(currentTimeInterpolated);
-
-//			float trackEnd = 0;
-			float trackEnd = GetTrackEnd (currentTime, currentTimeInterpolated, currentPlayer, draggingPlayhead);
-
-			//Timeline Tracker
-//			if (initialLocation.isTimeMachine) 
-//			{
-//				for (int i = 0, count = history.Count; i < count; i++)
-//				{
-//					ActionEnter actionEnter = history [i] as ActionEnter;
-//					
-//					if (actionEnter != null)
-//					{
-//						trackStart = actionEnter.time;
-//						break;
-//					}
-//				}
-//			}
-//			else 
-//			{
-//				trackStart = history [0].time;
-//			}
-
-//			trackEnd = 0;
-
-//			if (currentPlayer) 
-//			{
-//				if (draggingPlayhead) 
-//				{
-//					//trackEnd = trackStart;
-//
-//					if (history.Count > 0)
-//					{
-//						bool foundAction = false;
-//
-//						for (int i = history.Count - 1; i >= 0; i--) {
-//							Action action = history [i];
-//
-//							Location location = GetLocationAtTime (action.time);
-//
-//							if (location.isTimeMachine == false) {
-//								trackEnd = action.time + action.duration;
-//								foundAction = true;
-//								break;
-//							}
-//						}
-//
-//						if (initialLocation.isTimeMachine && foundAction == false)  
-//						{
-//							trackEnd = 0;
-//						}
-//						else 
-//						{
-//							if (currentTimeInterpolated > trackEnd)
-//								trackEnd = currentTimeInterpolated;
-//						}
-//					}
-//					else 
-//					{
-//						if (initialLocation.isTimeMachine == false) 
-//						{
-//							trackEnd = currentTimeInterpolated;
-//						} 
-//						else 
-//						{
-//							bool foundAction = false;
-//
-//							for (int i = history.Count - 1; i >= 0; i--) {
-//								Action action = history [i];
-//
-//								Location location = GetLocationAtTime (action.time);
-//
-//								if (location.isTimeMachine == false) 
-//								{
-//									trackEnd = action.time + action.duration;
-//									foundAction = true;
-//									break;
-//								}
-//							}
-//
-//							if (foundAction == false)
-//								trackEnd = 0;
-//						}
-//
-//					}
-//				}
-//				else 
-//				{
-//					bool foundAction = false;
-//
-//					for (int i = history.Count - 1; i >= 0; i--) {
-//						Action action = history [i];
-//
-//						Location location = GetLocationAtTime (action.time);
-//
-//						if (location.isTimeMachine == false) 
-//						{
-//							foundAction = true;
-//							break;
-//						}
-//					}
-//
-//					if (foundAction == false) 
-//					{
-//						trackEnd = 0;
-//					}
-//					else 
-//					{
-//						if (currentTimeInterpolated > trackEnd)
-//							trackEnd = currentTimeInterpolated;
-//					}
-//				}
-//			}
-//			else 
-//			{
-//				if (history.Count > 0) 
-//				{
-//					for (int i = history.Count - 1; i >= 0; i--) 
-//					{
-//						Action action = history[i];
-//
-//						Location location = GetLocationAtTime (action.time);
-//						if (location.isTimeMachine == false) 
-//						{
-//							trackEnd = action.time + action.duration + 1;
-//							break;
-//						}
-//					}
-//				}
-//			}
-//
-//			if (currentPlayer)
-//				Debug.Log (trackStart + " , " +trackEnd);
-			
-//			if (currentPlayer) 
-//			{
-//				if (initialLocation.isTimeMachine) 
-//				{
-//						
-//				}
-//				else 
-//				{
-//					
-//				}
-//
-////				if (history.Count > 0) 
-////				{
-//////				if (currentPlayer && !draggingPlayhead) 
-//////				{
-//////					if (trackEnd > currentTimeInterpolated)
-//////						trackEnd = currentTimeInterpolated;
-//////				}
-//////				else 
-//////				{
-////					Action lastAction = history [history.Count - 1];
-////					trackEnd = lastAction.time + lastAction.duration;
-//////				}
-////				}
-////
-////				if (currentPlayer && currentTimeInterpolated > trackEnd) 
-////				{
-////					trackEnd = currentTimeInterpolated;
-////				}
-//
-//			}
-//			else 
-//			{
-//				Action lastAction = history [history.Count - 1];
-//				trackEnd = lastAction.time + lastAction.duration;
-//			}
+			float trackEnd = GetTrackEnd (currentTime, currentTimeInterpolated, timeForNextDecision, currentPlayer, draggingPlayhead);
 
 			Vector3 localScale = timeLineTrack.localScale;
-
-
 			localScale.x = trackEnd - trackStart;
 			timeLineTrack.localScale = localScale;
 
@@ -459,7 +403,26 @@ namespace Incteractive
 			timeLineTrack.localPosition = localPos;
 
 			transform.position = pos;
-			transform.forward = forward;
+
+
+			if (draggingPlayhead) 
+			{
+				transform.rotation = Quaternion.LookRotation (forward); 
+				//transform.forward += forward;
+			}
+			else 
+			{
+				if (currentPlayer) 
+				{
+					transform.rotation = Quaternion.Slerp (transform.rotation, Quaternion.LookRotation (forward), 14f * Time.deltaTime);
+				}
+				else 
+				{
+					transform.rotation = Quaternion.Slerp (transform.rotation, Quaternion.LookRotation (forward), 30f * Time.deltaTime);
+				}
+				//transform.forward += (forward - transform.forward) * 8f * Time.deltaTime;
+			}
+
 		}
 
 		public Action GetAction(int targetTime)
