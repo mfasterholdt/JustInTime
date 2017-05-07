@@ -1,0 +1,92 @@
+
+
+
+//START HERE
+//TODO, things are looking quite promising, figure out of Timetravl actions can be a reliable paradox checker for item timeline
+//Are there any quirks where checking just the previous timeline is not sufficient
+//Can these paradoxes be checked just by copying the right age and ripple checking?
+
+//TODO, maybe age check should also go back and find fixed item
+
+
+//TODO, add check to timeline somehow in order to check for paradoxes probably
+//TODO, Consider when paradox check should happen
+//At time travel?
+//Remember the logic of no further iterations should be needed, if not currently possible then paradox
+
+//TODO, try adjusting age when entries in the item timeline are blank or overlapping
+//blank means subtract one from all future items
+//overlap means add one
+
+//take current time into considerations blank behind current time should be added
+//gaps in time ahead of current time should be assumed closed and additional age added accordingly
+
+//TODO, only Box has been improved to handles itemContainerIndex, and itemIndex
+
+//TODO, age object inside box
+
+//TODO, is final age not needed to handle box content? incorrect age seems error prone
+
+//TODO, conside ItemEntry struct vs. class
+
+
+//TODO, mff make age method on item and call downwards recursively to make sure items inside containers get aged probably
+
+
+//TODO, consider making drop, pickup and possibly others be index based instead of searching for items, perhaps just index favoring?
+//right now the wrong clock can be dropped
+
+//TODO, maybe a lot of actions are created every OnGUI redundantly? this will probably be fixed when changing to graphical version
+
+
+//TODO, mff consider moving goal check to end of tick to be forgiving for close calls
+//currentLocation does not match expectations, so character must move one tick before goal check
+//if item is dropped at the same tick as goal check it might not be registered
+//if character with item in inventory enters on the same tick as goal check it might not be registered
+//remember that goal check can currently add actions
+
+
+//Person hanging by their fingers
+//Enter too late see them fall
+//Wait enter, do not see them this creates ambiguity, they could have fallen or have already been saved
+
+//Add random glitches when time travlling
+//Could have easter egg/secret/planed event for going outside scope
+
+//Leaving items in the time machine?
+//Multiple time machines
+//Portable time machine
+//Portable oven
+
+//Check all history for paradoxes before win screen, not required with customer, but maybe still required for other levels
+
+//Npc behaviour
+//Wait for cake
+//Chase player
+//Patrol
+//Time travels...!
+
+
+//----// Postmortem
+//Conciousness fixes events in time
+//How do I implement the persistency in this level? wait my past self will arrive and place the item!
+//Is the cake concious?
+//Squeezing multiple characters into the time machine
+//Comparing not by hash or equals but by type and state, funky
+
+//TO-DO, mff this desperately needs to be moved to observation, is causing really weird behaviour in shroedingers cake
+
+//Having multiple instances of the same item require thinking in reverse? yup would appear so
+
+//Enforce rules
+//Previous iterations shouls not meet future iterations or each other
+//Previous iterations should not be prevented form any actions
+//Previous iterations shoudl not see anything new
+
+//A lot of reference to quantum states, ambiguity of location or content of container is unknown until observed, at which point it is fixed / determined
+
+//Argh fuck, quantum entanglement, opening and past version of a box influence the future version right next to it
+//this can maybe cause paradoxes backwards in timeline?
+//Lots of parallel versions of the same box
+
+//I have future paradoxes wayting to happen, in iterations of myself I am not going to play

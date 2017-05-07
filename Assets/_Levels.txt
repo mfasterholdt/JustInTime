@@ -1,0 +1,56 @@
+//Place item in one box
+//Take it out of another and it has aged accordingly
+
+
+//Place item in container to duplicate without causing paradoxes?
+
+//----// Magic trick
+//Give envelope
+//Pick a card any card
+//See card
+//Time travel backwards and replace card in envelope
+//Time travel forwards
+//Reveal
+
+
+//----// Broken
+//Find broken item
+//Go back prevent it from breaking
+//Use it
+//Break it intentionally to avoid paradox
+
+
+//----// Secret Messages between Time Travellers
+//Chest, Key, Letter
+//Place letter and key inside chest
+
+//Chest [ Key, Letter ]
+//Get letter and key out of chests
+
+
+
+//----// Vase
+//break to take key
+
+
+//----// Repair
+//Find broken item
+//Go back prevent it from breaking
+//Use it
+//Break it intentionally to avoid paradox
+
+//----// Making an Item exist as little as possible
+//Eat Cake
+//
+//
+//Place Cake
+//Pickup Cake
+
+
+
+//Dress as scare crow so your future self is allowed to be in the same room as your previous self
+//take item back in time fix it use it and make sure to break it before you put it back
+//pair wise duplication results in exponential growth, maybe candy expenser or something where the amount is not visible to avoid too much dropping
+//hide items in for example car trunk for later use
+//Pickpocket yourself or leave item unobserved for future you to borrow it for a while
+//Long preparation follow by self duplication instead of duplicatoin of something already existing
