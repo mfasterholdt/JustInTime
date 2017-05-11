@@ -7,8 +7,10 @@ namespace Incteractive
 	public class Location : MonoBehaviour
 	{
 //		public GameObject trigger;
-		public Location[] connectedLocations;
+
 		public bool isTimeMachine;
+		public Location[] connectedLocations;
+		public GameObject cover;
 
 //		void Awake () 
 //		{

@@ -8,9 +8,12 @@ namespace Incteractive
 	{
 		public Location initialLocation;
 
-		void Start () 
+		[HideInInspector]
+		public Location[] locations;
+
+		void Awake () 
 		{
-			
+			locations = GetComponentsInChildren<Location> ();
 		}
 		
 		// Update is called once per frame

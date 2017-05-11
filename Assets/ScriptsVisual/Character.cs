@@ -6,12 +6,18 @@ namespace Incteractive
 {
 	public class Character : MonoBehaviour
 	{
+		public new MeshRenderer renderer;
+		public GameObject visualsDefault;
+		public GameObject visualsWait;
+
+		[HideInInspector]
 		public Location initialLocation;
 
-
+		[HideInInspector]
 		public List<Action> history = new List<Action>();
+
+		[HideInInspector]
 		public Transform timeLineTrack;
-		public new MeshRenderer renderer;
 
 		public void Setup(Location initialLocation, Material material, Transform timeLineTrack)
 		{
@@ -76,6 +82,16 @@ namespace Incteractive
 			return null;
 		}
 
+		public int GetLastTime()
+		{
+			if (history.Count > 0) 
+			{
+				Action action = history [history.Count - 1];
+				return action.time + action.duration;
+			}
+
+			return 0;
+		}
 
 		public Location GetLocationAtTime(int time)
 		{
@@ -87,7 +103,7 @@ namespace Incteractive
 				{					
 					ActionEnter actionEnter = history [i] as ActionEnter;
 
-					if (actionEnter != null && time >= actionEnter.time) 
+					if (actionEnter != null && time > actionEnter.time) 
 					{
 						result = actionEnter.location;
 					}
@@ -130,8 +146,10 @@ namespace Incteractive
 				{
 					Action action = history[i];
 
-					Location location = GetLocationAtTime (action.time);
-					if (location.isTimeMachine == false) 
+					Location location = GetLocationAtTime (action.time + action.duration);
+					ActionEnter actionEnter = action as ActionEnter;
+
+					if (location.isTimeMachine == false || (actionEnter != null && actionEnter.location.isTimeMachine)) 
 					{
 						result = action.time + action.duration;
 						foundAction = true;
@@ -140,6 +158,7 @@ namespace Incteractive
 				}
 			}
 
+			return result;
 
 			if (currentPlayer)
 			{
@@ -357,10 +376,10 @@ namespace Incteractive
 				//Rotation
 //				Debug.Log(Mathf.Abs(currentTime-currentTimeInterpolated));
 //				if (currentPlayer == false && currentTime==currentTimeInterpolated) 
-				if (currentPlayer == false && Mathf.Abs(currentTime-currentTimeInterpolated) < 0.05f) 
+				if (Mathf.Abs(currentTime-currentTimeInterpolated) < 0.05f) 
 				{
-					Location location = GetLocationAtTime (currentTime - 1);
-					Location nextLocation = GetLocationAtTime (currentTime);
+					Location location = GetLocationAtTime (currentTime);
+					Location nextLocation = GetLocationAtTime (currentTime+1);
 
 					if (location != nextLocation)
 					{
@@ -368,10 +387,10 @@ namespace Incteractive
 						Vector3 toPos = nextLocation.transform.position;
 						forward = (toPos - fromPos).normalized;
 					}
-//					else 
-//					{
-//						forward = Vector3.back;
-//					}
+					else 
+					{
+						forward = Vector3.back;
+					}
 				}
 
 //				if (currentPlayer == false) 
@@ -422,7 +441,38 @@ namespace Incteractive
 				}
 				//transform.forward += (forward - transform.forward) * 8f * Time.deltaTime;
 			}
+				
+			visualsWait.SetActive (false);
+			visualsDefault.SetActive (true);
 
+			if (Mathf.Abs(transform.rotation.eulerAngles.y - 180f) < 5f) 
+			{
+				if (currentTime > 0) 
+				{
+//					visualsWait.SetActive (true);
+//					visualsDefault.SetActive (false);
+				}
+//				Action actionCurrent = GetAction (currentTime);
+//				if (actionCurrent != null) {
+//					ActionWait actionWai = actionCurrent as ActionWait;
+//					if (actionWai != null) {
+//						visualsWait.SetActive (true);
+//						visualsDefault.SetActive (false);
+//					}
+//				}
+//
+//				if (GetLastTime () == currentTime) {
+//					actionCurrent = GetAction (currentTime - 1);
+//					if (actionCurrent != null) {
+//						ActionWait actionWai = actionCurrent as ActionWait;
+//						if (actionWai != null) {
+//							visualsWait.SetActive (true);
+//							visualsDefault.SetActive (false);
+//						}
+//					}
+//				}
+
+			}
 		}
 
 		public Action GetAction(int targetTime)
