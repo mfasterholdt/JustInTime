@@ -16,8 +16,13 @@ namespace Incteractive
 		[HideInInspector]
 		public List<Action> history = new List<Action>();
 
-		[HideInInspector]
 		public Transform timeLineTrack;
+
+		[HideInInspector]
+		public CharacterTimeline timeLine;
+
+		[HideInInspector]
+		public Material primaryMaterial;
 
 		public void Setup(Location initialLocation, Material material, Transform timeLineTrack)
 		{
@@ -25,10 +30,19 @@ namespace Incteractive
 			renderer.material = material;
 			this.timeLineTrack = timeLineTrack;
 
-			CharacterTimeline characterTimeline = timeLineTrack.GetComponent<CharacterTimeline> ();
-			characterTimeline.Setup(material);
+			primaryMaterial = material;
+
+			CharacterTimeline timeLine = timeLineTrack.GetComponent<CharacterTimeline> ();
+			timeLine.Setup(material);
+			this.timeLine = timeLine;
 
 //			Reset ();
+		}
+
+		public void Destroy()
+		{
+			Destroy (timeLineTrack.gameObject);	
+			Destroy (this.gameObject);
 		}
 //
 //		public void Reset()
@@ -413,13 +427,13 @@ namespace Incteractive
 			float trackStart = GetTrackStart(currentTimeInterpolated);
 			float trackEnd = GetTrackEnd (currentTime, currentTimeInterpolated, timeForNextDecision, currentPlayer, draggingPlayhead);
 
-			Vector3 localScale = timeLineTrack.localScale;
+			Vector3 localScale = timeLine.bar.localScale;
 			localScale.x = trackEnd - trackStart;
-			timeLineTrack.localScale = localScale;
+			timeLine.bar.localScale = localScale;
 
-			Vector3 localPos = timeLineTrack.localPosition;
+			Vector3 localPos = timeLine.bar.localPosition;
 			localPos.x = trackStart;
-			timeLineTrack.localPosition = localPos;
+			timeLine.bar.localPosition = localPos;
 
 			transform.position = pos;
 

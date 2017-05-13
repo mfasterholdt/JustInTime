@@ -11,6 +11,8 @@ namespace Incteractive
 		public GameObject characterPrefab;
 
 		public GameObject characterTimelinePrefab;
+		public GameObject symbolEnterPrefab;
+
 		public Transform playhead;
 		public Collider canvasCollider;
 		public Button forwardButton;
@@ -39,7 +41,7 @@ namespace Incteractive
 
 		private List<Character> characters = new List<Character> ();
 
-		public enum State{None, Load, Ready, Forward, Backwards, Scrub, ScrubWait, Wait, Move, TimeTravel};
+		public enum State{None, Load, Ready, Forward, Backwards, Scrub, ScrubWait, Wait, Move, TimeTravelReady, TimeTravel};
 		public State state = State.None;
 
 		public RaycastHit[] mouseHits = new RaycastHit[0];
@@ -157,12 +159,14 @@ namespace Incteractive
 
 			if (mouseDown == false)
 			{
-				currentTime = Mathf.FloorToInt (nextPlayheadPos);
+				//currentTime = Mathf.FloorToInt (nextPlayheadPos);
 
-				timeForNextDecision = currentTime;
+				currentTime = timeForNextDecision;
+
+//				timeForNextDecision = currentTime;
 
 				float diff = Mathf.Abs(currentTime - currentTimeInterpolated);
-				float interpolateSpeed = diff > 1f ? 30f : 2f;
+				float interpolateSpeed = diff > 1f ? 20f : 2f;
 				SetScrubWaitState (interpolateSpeed);
 								
 				//UndoActions ();
@@ -176,18 +180,16 @@ namespace Incteractive
 
 				//Add wait actions to current player
 				//Debug.Log(currentPlayer.GetLastTime());
-
-
 			}
 
-			int lastTime = currentPlayer.GetLastTime ();
-
-			while (currentTimeInterpolated - 1 > lastTime) 
-			{						
-				Action actionWait = new ActionWait (lastTime, 1);
-				AddAction (actionWait, false);
-				lastTime += actionWait.duration; 
-			}
+//			int lastTime = currentPlayer.GetLastTime ();
+//
+//			while (currentTimeInterpolated - 1 > lastTime) 
+//			{						
+//				Action actionWait = new ActionWait (lastTime, 1);
+//				AddAction (actionWait, false);
+//				lastTime += actionWait.duration; 
+//			}
 		}
 
 		void SetScrubWaitState(float interpolateSpeed)
@@ -201,13 +203,13 @@ namespace Incteractive
 		{
 			InterpolateTime (scrubWaitInterpolateSpeed);
 
-			int lastTime = currentPlayer.GetLastTime ();
+//			int lastTime = currentPlayer.GetLastTime ();
 
-			while (currentTimeInterpolated > lastTime && currentTime > lastTime) 
-			{						
-				Action actionWait = new ActionWait (lastTime, 1);
-				AddAction (actionWait, false);
-			}
+//			while (currentTimeInterpolated > lastTime && currentTime > lastTime) 
+//			{						
+//				Action actionWait = new ActionWait (lastTime, 1);
+//				AddAction (actionWait, false);
+//			}
 
 			if (timeSynced) 
 			{
@@ -250,7 +252,7 @@ namespace Incteractive
 			currentTime--;
 			timeForNextDecision = currentTime;
 
-			backwardsButton.Toggle (true);
+//			backwardsButton.Toggle (true);
 
 			state = State.Backwards;
 		}
@@ -261,9 +263,24 @@ namespace Incteractive
 
 			if (timeSynced) 
 			{
-				backwardsButton.Toggle (false);
+				UndoActions ();
 
-				SetReadyState ();
+				Location location = currentPlayer.GetLocationAtTime (currentTime);
+
+				if (location == timeMachine) 
+				{
+					SetTimeTravelReadyState ();
+				}
+				else if (MouseDown (backwardsButton.collider) && currentTime > 0) 
+				{
+					currentTime--;
+					timeForNextDecision = currentTime;
+				}
+				else 
+				{
+//					backwardsButton.Toggle (false);
+					SetReadyState ();
+				}
 			}
 		}
 
@@ -311,80 +328,125 @@ namespace Incteractive
 
 		}
 
-		void SetTimeTravelState()
+		void SetTimeTravelReadyState()
 		{
 			playhead.gameObject.SetActive (false);
+
+			state = State.TimeTravelReady;
+		}
+
+		void TimeTravelReadyState()
+		{
+			if (blinkTimer > 0f) 
+			{
+				blinkTimer -= Time.deltaTime;
+			}
+			else
+			{
+				if (timelineBackground.sharedMaterial == whiteMaterial)
+				{
+					timelineBackground.sharedMaterial = timelineBackgroundMaterial; 
+					blinkTimer = 0.4f;
+				}
+				else 
+				{
+					timelineBackground.sharedMaterial = whiteMaterial; 
+					blinkTimer = 0.15f;
+				}
+			}
+
+			//Destroy current iteration
+			if (mousePress && MouseDown (backwardsButton.collider)) 
+			{
+				characters.Remove (currentPlayer);
+
+				currentPlayer.Destroy ();
+				currentPlayer = characters [characters.Count - 1];
+				int lastTime = currentPlayer.GetLastTime ();
+
+				currentTime = lastTime;
+				timeForNextDecision = lastTime;
+				currentTimeInterpolated = lastTime;
+	
+				playheadRenderer.material = currentPlayer.primaryMaterial;
+
+				playhead.gameObject.SetActive (true);
+				timelineBackground.sharedMaterial = timelineBackgroundMaterial; 
+
+				SetBackwardsState ();
+				//SetWaitState ();
+
+				return;
+			}
+
+			//Press Timeline
+			if (mousePress && MouseDown (timelineCollider)) 
+			{
+				SetTimeTravelState ();
+			}
+		}
+
+		void SetTimeTravelState()
+		{
+			playhead.gameObject.SetActive (true);
+			timelineBackground.sharedMaterial = whiteMaterial; 
+
+			float nextPlayheadPos = currentTime;
+
+			RaycastHit hit;
+			if (canvasCollider.Raycast (Camera.main.ScreenPointToRay (Input.mousePosition), out hit, 100f)) 
+			{
+				Vector3 hitLocalPos = timeline.transform.InverseTransformPoint (hit.point);
+				nextPlayheadPos = Mathf.Clamp(hitLocalPos.x, 0, timelineMax);
+			}
+
+			int nextTime = Mathf.FloorToInt(nextPlayheadPos);
+
+			currentTime = nextTime;
+			currentTimeInterpolated = nextTime;  //nextPlayheadPos;
 
 			state = State.TimeTravel;
 		}
 
-
 		void TimeTravelState()
 		{
-//			if (waitForMouseRelease) 
-//			{
-//				if (mouseRelease) 
-//				{
-//					timelineBackground.sharedMaterial = timelineBackgroundMaterial; 
-//					waitForMouseRelease = false;
-//
-//					SetReadyState ();	
-//				}
-//			}
-//			else
-//			{ 
-				if (blinkTimer > 0f) 
+			float nextPlayheadPos = currentTime;
+
+			RaycastHit hit;
+			if (canvasCollider.Raycast (Camera.main.ScreenPointToRay (Input.mousePosition), out hit, 100f)) 
+			{
+				Vector3 hitLocalPos = timeline.transform.InverseTransformPoint (hit.point);
+				nextPlayheadPos = Mathf.Clamp(hitLocalPos.x, 0, timelineMax);
+			}
+
+			int nextTime = Mathf.FloorToInt (nextPlayheadPos); 
+
+			if (mouseDown == false)
+			{
+				currentTime = nextTime;
+				timeForNextDecision = nextTime;
+				currentTimeInterpolated = nextTime;
+					
+				if (EnterLocation (timeMachine.connectedLocations[0])) 
 				{
-					blinkTimer -= Time.deltaTime;
+					timelineBackground.sharedMaterial = timelineBackgroundMaterial; 
+					SetMoveState ();
 				}
-				else
-				{
-					if (timelineBackground.sharedMaterial == whiteMaterial)
-					{
-						timelineBackground.sharedMaterial = timelineBackgroundMaterial; 
-						blinkTimer = 0.4f;
-					}
-					else 
-					{
-						timelineBackground.sharedMaterial = whiteMaterial; 
-						blinkTimer = 0.15f;
-					}
-				}
-
-				if (mousePress && MouseDown (timelineCollider)) 
-				{
-					Ray mouseRay = Camera.main.ScreenPointToRay (Input.mousePosition);
-
-					RaycastHit hit;
-
-					if (canvasCollider.Raycast (mouseRay, out hit, 100f)) 
-					{
-						Debug.DrawLine (mouseRay.origin, hit.point, Color.red);
-						Vector3 hitLocalPos = timeline.transform.InverseTransformPoint (hit.point);
-
-						float nextPlayheadPos = Mathf.Clamp (hitLocalPos.x, 0, timelineMax);
-						int nextTime = Mathf.FloorToInt (nextPlayheadPos);
-
-						currentTime = nextTime;
-						currentTimeInterpolated = nextTime;
-						timeForNextDecision = nextTime;
-
-						playhead.gameObject.SetActive (true);
-
-						timelineBackground.sharedMaterial = timelineBackgroundMaterial; 
-						blinkTimer = 0;
-
-						SetReadyState ();	
-
-//						waitForMouseRelease = true;
-					}
-				}
-//			}	
+			}
+			else 
+			{
+				currentTime = nextTime;  // Mathf.FloorToInt(nextPlayheadPos);
+				currentTimeInterpolated = nextTime;  //currentTime;//Mathf.MoveTowards(currentTimeInterpolated, nextPlayheadPos, 30f * Time.deltaTime);
+			}
 		}
+
 
 		void Update()
 		{
 			UpdateMouseInput ();
+
+			bool backwardsButtonDown = MouseDown (backwardsButton.collider);
+			backwardsButton.Toggle (backwardsButtonDown);
 
 			timeSynced = currentTimeInterpolated == currentTime; 
 
@@ -413,6 +475,9 @@ namespace Incteractive
 				break;
 			case State.Move:
 				MoveState ();
+				break;
+			case State.TimeTravelReady:
+				TimeTravelReadyState ();
 				break;
 			case State.TimeTravel:
 				TimeTravelState ();
@@ -539,7 +604,7 @@ namespace Incteractive
 //			currentTimeInterpolated = 0;
 //			timeForNextDecision = 0;
 
-			SetTimeTravelState();
+			SetTimeTravelReadyState();
 		}	
 
 		public bool EnterLocation(Location location)
@@ -589,6 +654,11 @@ namespace Incteractive
 		{
 			UndoActions();
 
+			if (action is ActionEnter) 
+			{
+				currentPlayer.timeLine.AddSymbol (symbolEnterPrefab, currentPlayer.primaryMaterial, currentTime);
+			}
+
 			currentPlayer.history.Add(action);
 
 			timeForNextDecision += action.duration;
@@ -610,6 +680,7 @@ namespace Incteractive
 					if (action.time >= currentTime) 
 					{
 						currentPlayer.history.Remove (action);
+						currentPlayer.timeLine.RemoveSymbols (currentTime);
 					}
 				}
 			}
