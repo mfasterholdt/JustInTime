@@ -6,29 +6,21 @@ namespace Incteractive
 {
 	public class Location : MonoBehaviour
 	{
-//		public GameObject trigger;
-
 		public bool isTimeMachine;
-		public Location[] connectedLocations;
 		public GameObject cover;
+		public Location[] connectedLocations;
 
-//		void Awake () 
-//		{
-//			if (trigger) 
-//			{
-//				MouseEvents mouseEvents = trigger.GetComponent<MouseEvents> ();
-//				mouseEvents.mouseDown = LocationMouseDown;	
-//			}
-//		}
-//
-//		void Update () 
-//		{
-//			
-//		}
-//
-//		void LocationMouseDown(Transform transform)
-//		{
-//			GameManager.instance.EnterLocation (this);
-//		}
+		public List<Item> items = new List<Item>();
+
+		void Awake()
+		{
+			for (int i = 0, count = transform.childCount; i < count; i++) 
+			{
+				Item item = transform.GetChild (i).GetComponent<Item> ();	
+
+				if (item) 
+					items.Add (item);
+			}
+		}
 	}
 }

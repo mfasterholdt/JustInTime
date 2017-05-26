@@ -7,7 +7,7 @@ namespace Incteractive
 	public class CharacterTimeline : MonoBehaviour 
 	{
 		public Transform bar;
-		public new MeshRenderer barRenderer;
+		public MeshRenderer barRenderer;
 
 		private List<GameObject> symbols = new List<GameObject>();
 
@@ -40,7 +40,7 @@ namespace Incteractive
 
 				if (symbol.transform.localPosition.x >= currentTime) 
 				{
-					symbols.Remove (symbol);
+					symbols.RemoveAt(i);
 					Destroy (symbol);
 				}
 				else 

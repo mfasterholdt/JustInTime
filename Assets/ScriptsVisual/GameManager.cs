@@ -23,6 +23,8 @@ namespace Incteractive
 		public Material[] playerMaterials;
 		public Material whiteMaterial;
 
+		public GameObject paradoxParticles;
+
 		[Header("--- Timeline ---")]
 		public GameObject timeline;
 		public Collider timelineCollider;
@@ -41,7 +43,7 @@ namespace Incteractive
 
 		private List<Character> characters = new List<Character> ();
 
-		public enum State{None, Load, Ready, Forward, Backwards, Scrub, ScrubWait, Wait, Move, TimeTravelReady, TimeTravel};
+		public enum State{None, Load, Ready, Forward, Backwards, Scrub, ScrubWait, Action, TimeTravelReady, TimeTravel, Paradox};
 		public State state = State.None;
 
 		public RaycastHit[] mouseHits = new RaycastHit[0];
@@ -99,11 +101,11 @@ namespace Incteractive
 		void ReadyState()
 		{
 			//Forward
-			if (MouseDown (forwardButton.collider) && currentTime < timelineMax) 
-			{				
-				SetForwardState ();
-				return;
-			}
+//			if (MouseDown (forwardButton.collider) && currentTime < timelineMax) 
+//			{				
+//				SetForwardState ();
+//				return;
+//			}
 
 			//Backwards
 			if (MouseDown (backwardsButton.collider) && currentTime > 0) 
@@ -119,23 +121,59 @@ namespace Incteractive
 				return;
 			}
 
-			//----// Interactions //----//
+			//Interactions
+			bool isInteracting = Interactions ();
+
+			if (isInteracting) 
+			{
+				SetActionState ();
+			}
+		}
+
+		bool Interactions()
+		{
+			//----// Items //----//
+
+			Item item = MouseDown<Item> ();
+			if (item) 
+			{
+				//Pickup
+				if (item.isMovable) 
+				{					
+					if (item.itemAround) 
+					{
+						ActionPickup actionPickup = new ActionPickup (currentTime, 1, item.itemAround.itemsInside [0], item.itemAround);
+						AddAction (actionPickup);
+						return true;
+					}
+					else 
+					{
+						ActionPickup actionPickup = new ActionPickup (currentTime, 1, item, item);
+						AddAction (actionPickup);
+						return true;
+					}
+				}
+				else if (item.isContainer && item.itemsInside.Count > 0) 
+				{
+					ActionPickup actionPickup = new ActionPickup (currentTime, 1, item.itemsInside [0], item);
+					AddAction (actionPickup);
+					return true;
+				}
+			}
+
+			//----// Location //----//
 
 			Location location = MouseDown<Location>();
 			if(location)
 			{
 				if (EnterLocation (location)) 
-				{
-					SetMoveState ();
-					return;
-				}
+					return true;
 
-				if (WaitLocation (location)) 
-				{
-					SetWaitState ();
-					return;
-				}
+				if (WaitLocation (location))
+					return true;
 			}
+
+			return false;
 		}
 
 		void SetScrubState()
@@ -263,7 +301,7 @@ namespace Incteractive
 
 			if (timeSynced) 
 			{
-				UndoActions ();
+				currentPlayer.UndoActions (currentTime); //UndoActions ();
 
 				Location location = currentPlayer.GetLocationAtTime (currentTime);
 
@@ -284,49 +322,153 @@ namespace Incteractive
 			}
 		}
 
-		void SetWaitState()
+		void SetActionState()
 		{
-			state = State.Wait;
-		}
-
-		void WaitState()
-		{
-			InterpolateTime ();
-
-			if (timeSynced) 
+			//Perform actions
+			for (int i = 0; i < characters.Count; i++) 
 			{
-				SetReadyState ();
-			}
-		}
+				Character character = characters[i];
 
-		void SetMoveState()
-		{
-			state = State.Move;	
-		}
-
-		void MoveState()
-		{
-			InterpolateTime ();
-
-			if (timeSynced) 
-			{
-				Action action = currentPlayer.GetLastAction();
+				Action action = character.GetAction (currentTime - 1);
 
 				if (action != null) 
 				{
-					ActionEnter actionEnter = action as ActionEnter;
-
-					if (actionEnter != null && actionEnter.location == timeMachine) 
-					{
-						TimeTravel ();
-						return;
-					}
+					action.Perform (character, currentTime - 1);
 				}
-
-				SetReadyState ();
 			}
 
+			//Progress Time
+			currentTime++;
+
+			Location currentLocation = currentPlayer.GetLocationAtTime (currentTime);
+
+			//Current Observations
+			for (int i = 0, count = characters.Count; i < count; i++) 
+			{
+				characters[i].CreateCurrentObservation(currentTime, characters);
+			}
+
+			//Check Observations
+			for (int i = 0, count = characters.Count; i < count; i++) 
+			{
+				Character character = characters [i];
+
+				if (character != currentPlayer)
+				{
+					character.CheckObservations (currentTime);
+
+					//Check crossing characters
+					if (currentLocation.isTimeMachine == false)
+					{
+						if (currentLocation == character.GetLocationAtTime (currentTime - 1))							
+						{ 
+							if (currentPlayer.GetLocationAtTime (currentTime - 1) == character.GetLocationAtTime (currentTime)) 
+							{
+								Paradox paradox = new Paradox (character.visualsMeet, currentPlayer);
+								character.currentParadoxes.Add (paradox);
+							}
+						}
+					}
+				}
+			}
+
+
+
+			//----// Paradox Check //----//
+
+			bool paradoxFound = false;
+			for (int i = 0, count = characters.Count; i < count; i++) 
+			{
+				Character character = characters [i];
+				if (character.currentParadoxes.Count > 0) 
+				{
+					paradoxFound = true;
+					break;
+				}
+			}
+
+			if (paradoxFound) 
+			{
+				SetParadoxState ();
+			}
+			else
+			{
+				currentPlayer.AddCurrentObservation();
+				state = State.Action;
+			}
 		}
+
+		void ActionState()
+		{
+			InterpolateTime ();
+
+			if (timeSynced) 
+			{
+				if (timeForNextDecision > currentTime) 
+				{
+					SetActionState ();
+				} 
+				else 
+				{
+					bool isTimeTravelling = TimeTravelCheck();
+
+					if (isTimeTravelling) 
+					{
+						TimeTravel ();
+					}
+					else 
+					{
+						SetReadyState ();
+					}
+				}
+			}
+		}
+
+		bool TimeTravelCheck()
+		{
+			Action action = currentPlayer.GetLastAction ();
+
+			if (action != null) 
+			{
+				ActionEnter actionEnter = action as ActionEnter;
+
+				if (actionEnter != null && actionEnter.location == timeMachine) 
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+//		void SetMoveState()
+//		{
+//			state = State.Move;	
+//		}
+//
+//		void MoveState()
+//		{
+//			InterpolateTime ();
+//
+//			if (timeSynced) 
+//			{
+//				Action action = currentPlayer.GetLastAction();
+//
+//				if (action != null) 
+//				{
+//					ActionEnter actionEnter = action as ActionEnter;
+//
+//					if (actionEnter != null && actionEnter.location == timeMachine) 
+//					{
+//						TimeTravel ();
+//						return;
+//					}
+//				}
+//
+//				SetReadyState ();
+//			}
+//
+//		}
 
 		void SetTimeTravelReadyState()
 		{
@@ -403,7 +545,7 @@ namespace Incteractive
 			int nextTime = Mathf.FloorToInt(nextPlayheadPos);
 
 			currentTime = nextTime;
-			currentTimeInterpolated = nextTime;  //nextPlayheadPos;
+			currentTimeInterpolated = nextPlayheadPos; //nextTime;
 
 			state = State.TimeTravel;
 		}
@@ -430,22 +572,71 @@ namespace Incteractive
 				if (EnterLocation (timeMachine.connectedLocations[0])) 
 				{
 					timelineBackground.sharedMaterial = timelineBackgroundMaterial; 
-					SetMoveState ();
+					SetActionState ();
 				}
 			}
 			else 
 			{
-				currentTime = nextTime;  // Mathf.FloorToInt(nextPlayheadPos);
-				currentTimeInterpolated = nextTime;  //currentTime;//Mathf.MoveTowards(currentTimeInterpolated, nextPlayheadPos, 30f * Time.deltaTime);
+				//currentTime = nextTime;
+				currentTime = Mathf.FloorToInt(nextPlayheadPos);
+
+				//currentTimeInterpolated = nextTime;
+				currentTimeInterpolated = Mathf.MoveTowards(currentTimeInterpolated, nextPlayheadPos, 30f * Time.deltaTime);
 			}
 		}
 
+		void SetParadoxState()
+		{
+
+			state = State.Paradox;
+		}
+
+		void ParadoxState()
+		{
+			InterpolateTime ();
+
+			backwardsButton.transform.localScale = Vector3.one * (1.5f + 0.3f * Mathf.Sin (Time.time * 5f));
+
+			if (timeSynced) 
+			{
+				//TODO this should be done differently 
+				for (int i = 0, count = characters.Count; i < count; i++) 
+				{
+					Character character = characters [i];
+
+					if (character.currentParadoxes.Count > 0) 
+					{
+						Paradox paradox = character.currentParadoxes [0];
+
+						if (paradox != null)  
+						{					
+							paradoxParticles.transform.position = paradox.character.transform.position;// character.transform.position;
+						}
+					}
+				}
+
+				//Backwards
+				if (MouseDown (backwardsButton.collider)) 
+				{
+					for (int i = 0, count = characters.Count; i < count; i++) 
+					{
+						characters[i].currentParadoxes.Clear();
+					}
+
+					backwardsButton.transform.localScale = Vector3.one;
+
+					paradoxParticles.gameObject.SetActive (false);
+
+					SetBackwardsState ();
+				}
+			}
+		}
 
 		void Update()
 		{
 			UpdateMouseInput ();
 
-			bool backwardsButtonDown = MouseDown (backwardsButton.collider);
+			bool backwardsButtonDown = MouseDown (backwardsButton.collider) || Input.GetKey(KeyCode.Z);
 			backwardsButton.Toggle (backwardsButtonDown);
 
 			timeSynced = currentTimeInterpolated == currentTime; 
@@ -457,7 +648,7 @@ namespace Incteractive
 				break;
 			case State.Ready:
 				ReadyState ();
-				break;
+				break;			
 			case State.Scrub:
 				ScrubState ();
 				break;	
@@ -470,17 +661,20 @@ namespace Incteractive
 			case State.Backwards:
 				BackwardsState ();
 				break;			
-			case State.Wait:
-				WaitState ();
+			case State.Action:
+				ActionState ();
 				break;
-			case State.Move:
-				MoveState ();
-				break;
+//			case State.Move:
+//				MoveState ();
+//				break;
 			case State.TimeTravelReady:
 				TimeTravelReadyState ();
 				break;
 			case State.TimeTravel:
 				TimeTravelState ();
+				break;
+			case State.Paradox:
+				ParadoxState ();
 				break;
 			}
 
@@ -613,7 +807,7 @@ namespace Incteractive
 
 			if (currentLocation == timeMachine && location != timeMachine)
 			{				
-				Action actionEnter = new ActionEnter (currentTime, timeMachine.connectedLocations [0], 1);
+				Action actionEnter = new ActionEnter (currentTime, 1, timeMachine.connectedLocations [0]);
 				AddAction (actionEnter);
 
 				return true;
@@ -624,7 +818,7 @@ namespace Incteractive
 				{
 					if (currentLocation.connectedLocations [i] == location) 
 					{					
-						Action actionEnter = new ActionEnter (currentTime, location, 1);
+						Action actionEnter = new ActionEnter (currentTime, 1, location);
 						AddAction (actionEnter);
 
 						return true;
@@ -652,39 +846,42 @@ namespace Incteractive
 
 		public void AddAction(Action action, bool increaseCurrentTime = true)
 		{
-			UndoActions();
+			//currentPlayer.UndoActions (currentTime); //UndoActions ();
 
-			if (action is ActionEnter) 
-			{
-				currentPlayer.timeLine.AddSymbol (symbolEnterPrefab, currentPlayer.primaryMaterial, currentTime);
-			}
+			//Add symbols
+//			if (action is ActionEnter) 
+//			{
+////				currentPlayer.timeLine.AddSymbol (symbolEnterPrefab, currentPlayer.primaryMaterial, currentTime);
+//			}
 
 			currentPlayer.history.Add(action);
 
 			timeForNextDecision += action.duration;
 
-			if (increaseCurrentTime) 
-			{
-				currentTime += action.duration;
-			}
+//			if (increaseCurrentTime) 
+//			{
+//				currentTime += action.duration;
+//			}
 		}
 
-		void UndoActions()
-		{
-			if (currentPlayer.history.Count > 0) 
-			{
-				for (int i = currentPlayer.history.Count - 1; i >= 0; i--) 
-				{				
-					Action action = currentPlayer.history[i];
-
-					if (action.time >= currentTime) 
-					{
-						currentPlayer.history.Remove (action);
-						currentPlayer.timeLine.RemoveSymbols (currentTime);
-					}
-				}
-			}
-		}
+//		void UndoActions()
+//		{
+//			currentPlayer.UndoActions (currentTime);
+//
+//			if (currentPlayer.history.Count > 0) 
+//			{
+//				for (int i = currentPlayer.history.Count - 1; i >= 0; i--) 
+//				{				
+//					Action action = currentPlayer.history[i];
+//
+//					if (action.time >= currentTime) 
+//					{
+//						currentPlayer.history.Remove (action);
+//						currentPlayer.timeLine.RemoveSymbols (currentTime);
+//					}
+//				}
+//			}
+//		}
 
 		private void CreatePlayer(Location location)
 		{

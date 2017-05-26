@@ -8,17 +8,17 @@ namespace Incteractive
 	{
 		public Location location;
 
-		public ActionEnter(int time, Location location, int duration)
+		public ActionEnter(int time, int duration, Location location)
 		{
 			this.time = time;
-			this.location = location;
 			this.duration = duration;
+			this.location = location;
 		}
 
-		public override bool Perform (Character character)	
-		{
-//			character.SetCurrentLocation (location);
-			return true;
-		}
+//		public override bool Perform (Character character)	
+//		{
+////			character.SetCurrentLocation (location);
+//			return true;
+//		}
 	}
 }

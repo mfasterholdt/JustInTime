@@ -1,0 +1,8 @@
+//Move location as action
+//Current location
+
+//Consider item profile for comparison
+
+//Change to run through of actions to get correct position of items and everything that will follow
+
+//Consider how to blend item position

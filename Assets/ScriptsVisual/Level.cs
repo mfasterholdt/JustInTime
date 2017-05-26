@@ -14,12 +14,13 @@ namespace Incteractive
 		void Awake () 
 		{
 			locations = GetComponentsInChildren<Location> ();
-		}
-		
-		// Update is called once per frame
-		void Update () 
-		{
-			
+
+			Item[] items = GetComponentsInChildren<Item> ();
+
+			for (int i = 0, length = items.Length; i < length; i++) 
+			{
+				items [i].SetId(i);	
+			}
 		}
 	}
 }

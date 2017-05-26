@@ -5,10 +5,15 @@ using UnityEngine;
 namespace Incteractive
 {
 	public class Character : MonoBehaviour
-	{
-		public new MeshRenderer renderer;
+	{		
 		public GameObject visualsDefault;
+		public GameObject visualsMeet;
 		public GameObject visualsWait;
+		public MeshRenderer[] colorRenderers;
+
+		public Transform carryPivot;
+
+		public List<Item> inventory = new List<Item> ();
 
 		[HideInInspector]
 		public Location initialLocation;
@@ -16,6 +21,10 @@ namespace Incteractive
 		[HideInInspector]
 		public List<Action> history = new List<Action>();
 
+		[HideInInspector]
+		public List<Observation> observations = new List<Observation>();
+
+		[HideInInspector]
 		public Transform timeLineTrack;
 
 		[HideInInspector]
@@ -24,10 +33,21 @@ namespace Incteractive
 		[HideInInspector]
 		public Material primaryMaterial;
 
+		private Observation currentObservation;
+
+		[HideInInspector]
+		public List<Paradox> currentParadoxes = new List<Paradox>();
+
 		public void Setup(Location initialLocation, Material material, Transform timeLineTrack)
 		{
 			this.initialLocation = initialLocation;
-			renderer.material = material;
+
+			for (int i = 0, length = colorRenderers.Length; i < length; i++) 
+			{
+				MeshRenderer renderer = colorRenderers [i];
+				renderer.material = material;
+			}
+
 			this.timeLineTrack = timeLineTrack;
 
 			primaryMaterial = material;
@@ -50,6 +70,7 @@ namespace Incteractive
 //
 //		}
 //
+
 		public int GetNextActionTime()
 		{
 			if (history.Count > 0) 
@@ -152,7 +173,7 @@ namespace Incteractive
 		public float GetTrackEnd(int currentTime, float currentTimeInterpolated, int timeForNextDecision, bool currentPlayer, bool draggingPlayhead)
 		{
 			float result = 0f;
-			bool foundAction = false;
+//			bool foundAction = false;
 
 			if (history.Count > 0) 
 			{
@@ -166,7 +187,7 @@ namespace Incteractive
 					if (location.isTimeMachine == false || (actionEnter != null && actionEnter.location.isTimeMachine)) 
 					{
 						result = action.time + action.duration;
-						foundAction = true;
+//						foundAction = true;
 						break;
 					}
 				}
@@ -174,61 +195,61 @@ namespace Incteractive
 
 			return result;
 
-			if (currentPlayer)
-			{
-				if(draggingPlayhead) 
-				{
-					if(currentTimeInterpolated > result)
-						result = currentTimeInterpolated;
-				}
-				else
-				{	
-					if (timeForNextDecision > currentTimeInterpolated) 
-					{	
-						if (currentTime < timeForNextDecision) 
-						{
-//							if (currentTimeInterpolated < currentTime) 
-//							{
-//								result = timeForNextDecision;		
-//							}
-							//if(currentTime - 1 
-						}
-						else 
-						{
-							result = currentTimeInterpolated;
-						}
-
-//						if (foundAction)
-//						{
-//							
-//							Debug.Log (foundAction);
-//						}
-//						else 
-//						{
-//							result = currentTimeInterpolated;
-//						}
+//			if (currentPlayer)
+//			{
+//				if(draggingPlayhead) 
+//				{
+//					if(currentTimeInterpolated > result)
+//						result = currentTimeInterpolated;
+//				}
+//				else
+//				{	
+//					if (timeForNextDecision > currentTimeInterpolated) 
+//					{	
 //						if (currentTime < timeForNextDecision) 
 //						{
-//							result = currentTimeInterpolated;
-//						}
-//						else
-//						{
-//							result = timeForNextDecision;
-//
+////							if (currentTimeInterpolated < currentTime) 
+////							{
+////								result = timeForNextDecision;		
+////							}
+//							//if(currentTime - 1 
 //						}
 //						else 
 //						{
 //							result = currentTimeInterpolated;
 //						}
-					}
-					else if (currentTimeInterpolated > currentTime) 
-					{
-						result = currentTimeInterpolated;
-					}
-				}
-			}
-
-			return result;
+//
+////						if (foundAction)
+////						{
+////							
+////							Debug.Log (foundAction);
+////						}
+////						else 
+////						{
+////							result = currentTimeInterpolated;
+////						}
+////						if (currentTime < timeForNextDecision) 
+////						{
+////							result = currentTimeInterpolated;
+////						}
+////						else
+////						{
+////							result = timeForNextDecision;
+////
+////						}
+////						else 
+////						{
+////							result = currentTimeInterpolated;
+////						}
+//					}
+//					else if (currentTimeInterpolated > currentTime) 
+//					{
+//						result = currentTimeInterpolated;
+//					}
+//				}
+//			}
+//
+//			return result;
 		}
 
 		public float GetTrackEndOld(int currentTime, float currentTimeInterpolated, bool currentPlayer, bool draggingPlayhead)
@@ -344,6 +365,15 @@ namespace Incteractive
 			return result;
 		}
 
+		public void SetVisuals(GameObject nextVisuals)
+		{
+			visualsWait.SetActive (false);
+			visualsDefault.SetActive (false);
+			visualsMeet.SetActive (false);
+
+			nextVisuals.SetActive (true);
+		}
+
 		public void UpdateCharacter(int currentTime, float currentTimeInterpolated, int timeForNextDecision, bool currentPlayer, bool draggingPlayhead)
 		{
 			Vector3 pos = initialLocation.transform.position;
@@ -438,26 +468,45 @@ namespace Incteractive
 			transform.position = pos;
 
 
-			if (draggingPlayhead) 
+			float timeDiff = Mathf.Abs(currentTime - currentTimeInterpolated);
+
+			if (currentPlayer)
 			{
-				transform.rotation = Quaternion.LookRotation (forward); 
-				//transform.forward += forward;
+				transform.rotation = Quaternion.Slerp (transform.rotation, Quaternion.LookRotation (forward), 14f * Time.deltaTime);
 			}
 			else 
 			{
-				if (currentPlayer) 
+				if (timeDiff < 0.5f) 
 				{
-					transform.rotation = Quaternion.Slerp (transform.rotation, Quaternion.LookRotation (forward), 14f * Time.deltaTime);
+					SetVisuals (visualsDefault);
+
+					if (currentParadoxes.Count > 0) 
+					{
+						Paradox paradox = currentParadoxes [0];
+
+						if (paradox.visuals) 
+						{
+							SetVisuals (paradox.visuals);
+						}
+					} 
+					else 
+					{
+						transform.rotation = Quaternion.Slerp (transform.rotation, Quaternion.LookRotation (forward), 30f * Time.deltaTime);
+
+//						if (draggingPlayhead) {
+//							transform.rotation = Quaternion.LookRotation (forward); 
+//							//transform.forward += forward;
+//						} else {
+//							if (currentPlayer) {
+//								transform.rotation = Quaternion.Slerp (transform.rotation, Quaternion.LookRotation (forward), 14f * Time.deltaTime);
+//							} else {
+//								transform.rotation = Quaternion.Slerp (transform.rotation, Quaternion.LookRotation (forward), 30f * Time.deltaTime);
+//							}
+//							//transform.forward += (forward - transform.forward) * 8f * Time.deltaTime;
+//						}
+					}
 				}
-				else 
-				{
-					transform.rotation = Quaternion.Slerp (transform.rotation, Quaternion.LookRotation (forward), 30f * Time.deltaTime);
-				}
-				//transform.forward += (forward - transform.forward) * 8f * Time.deltaTime;
 			}
-				
-			visualsWait.SetActive (false);
-			visualsDefault.SetActive (true);
 
 			if (Mathf.Abs(transform.rotation.eulerAngles.y - 180f) < 5f) 
 			{
@@ -485,7 +534,6 @@ namespace Incteractive
 //						}
 //					}
 //				}
-
 			}
 		}
 
@@ -505,6 +553,35 @@ namespace Incteractive
 			return null;
 		}
 
+		public void UndoActions(int currentTime)
+		{	
+			for (int i = history.Count - 1; i >= 0; i--) 
+			{				
+				Action action = history[i];
+
+				if (action.time >= currentTime) 
+				{
+					history.RemoveAt (i);
+				}
+				else 
+				{
+					break;
+				}
+			}
+
+			timeLine.RemoveSymbols (currentTime);
+
+			for (int i = observations.Count - 1; i >= 0; i--) 
+			{
+				Observation observation = observations [i];
+				     
+				if (observation.time >= currentTime) 
+				{
+					observations.RemoveAt (i);
+				}
+			}
+		}
+
 		public int RemoveLastAction()
 		{
 			int lastIndex = history.Count - 1; 
@@ -512,6 +589,80 @@ namespace Incteractive
 			history.RemoveAt(lastIndex);
 
 			return action.time;
+		}
+
+		public void CreateCurrentObservation(int currentTime, List<Character> characters)
+		{
+			currentObservation = MakeObservation (currentTime, characters);
+		}
+
+
+		public void CheckObservations(int currentTime)
+		{
+			for (int i = 0, count = observations.Count; i < count; i++) 
+			{
+				Observation expectedObservation = observations [i];
+
+				if (expectedObservation.time == currentTime) 
+				{
+					CompareObservations (currentObservation, expectedObservation);
+					break;
+				}				
+			}
+		}
+
+		public void CompareObservations(Observation currentObservation, Observation expectedObservation)
+		{
+			List<Character> currentCharacters = currentObservation.characters;
+
+
+			//Expected Characters
+			for (int i = 0, count = expectedObservation.characters.Count; i < count; i++) 
+			{
+				Character character = expectedObservation.characters [i];
+
+				if (currentCharacters.Remove (character) == false) 
+				{	
+					Paradox paradox = new Paradox (visualsMeet, character);
+					currentParadoxes.Add (paradox);	
+				}			
+			}
+
+			//Unexpected 
+			for (int i = 0, count = currentCharacters.Count; i < count; i++) 
+			{
+				Paradox paradox = new Paradox (visualsMeet, currentCharacters[i]);
+				currentParadoxes.Add (paradox);
+			}
+		}
+
+		public void AddCurrentObservation()
+		{		
+			observations.Add (currentObservation);
+		}
+
+		private Observation MakeObservation(int currentTime, List<Character> characters)
+		{
+			Location currentLocation = GetLocationAtTime (currentTime);
+			
+			List<Character> observedCharacters = new List<Character> ();
+
+			if (currentLocation.isTimeMachine == false)
+			{
+				for (int i = 0, count = characters.Count; i < count; i++) {
+					Character character = characters [i];
+				
+					if (character != this) {
+						Location location = character.GetLocationAtTime (currentTime);
+					
+						if (location == currentLocation) {
+							observedCharacters.Add (character);
+						}
+					}
+				}
+			}
+
+			return new Observation (currentTime, currentLocation, observedCharacters);
 		}
 	}
 }

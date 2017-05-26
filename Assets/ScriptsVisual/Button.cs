@@ -6,7 +6,7 @@ public class Button : MonoBehaviour
 {
 	public GameObject released;
 	public GameObject pressed;
-	public Collider collider;
+	public new Collider collider;
 
 	public bool value;
 
