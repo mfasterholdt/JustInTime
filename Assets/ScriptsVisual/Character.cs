@@ -16,12 +16,10 @@ namespace Incteractive
 		public List<Item> inventory = new List<Item> ();
 
 		[HideInInspector]
-		public Location initialLocation;
+		public Location initialLocation, currentLocation, previousLocation;
 
-		[HideInInspector]
 		public List<Action> history = new List<Action>();
 
-		[HideInInspector]
 		public List<Observation> observations = new List<Observation>();
 
 		[HideInInspector]
@@ -38,9 +36,10 @@ namespace Incteractive
 		[HideInInspector]
 		public List<Paradox> currentParadoxes = new List<Paradox>();
 
-		public void Setup(Location initialLocation, Material material, Transform timeLineTrack)
+		public void Setup(Location location, Material material, Transform timeLineTrack)
 		{
-			this.initialLocation = initialLocation;
+			initialLocation = location;
+			currentLocation = location;
 
 			for (int i = 0, length = colorRenderers.Length; i < length; i++) 
 			{
@@ -56,7 +55,11 @@ namespace Incteractive
 			timeLine.Setup(material);
 			this.timeLine = timeLine;
 
-//			Reset ();
+		}
+
+		public void Reset()
+		{
+			currentLocation = initialLocation;
 		}
 
 		public void Destroy()
@@ -64,12 +67,12 @@ namespace Incteractive
 			Destroy (timeLineTrack.gameObject);	
 			Destroy (this.gameObject);
 		}
-//
-//		public void Reset()
-//		{
-//
-//		}
-//
+
+		public void MoveLocation(Location location)
+		{
+			previousLocation = currentLocation;
+			currentLocation = location;
+		}
 
 		public int GetNextActionTime()
 		{
@@ -140,7 +143,7 @@ namespace Incteractive
 
 					if (actionEnter != null && time > actionEnter.time) 
 					{
-						result = actionEnter.location;
+						result = actionEnter.toLocation;
 					}
 				}
 			}
@@ -184,7 +187,7 @@ namespace Incteractive
 					Location location = GetLocationAtTime (action.time + action.duration);
 					ActionEnter actionEnter = action as ActionEnter;
 
-					if (location.isTimeMachine == false || (actionEnter != null && actionEnter.location.isTimeMachine)) 
+					if (location.isTimeMachine == false || (actionEnter != null && actionEnter.toLocation.isTimeMachine)) 
 					{
 						result = action.time + action.duration;
 //						foundAction = true;
@@ -374,13 +377,129 @@ namespace Incteractive
 			nextVisuals.SetActive (true);
 		}
 
-		public void UpdateCharacter(int currentTime, float currentTimeInterpolated, int timeForNextDecision, bool currentPlayer, bool draggingPlayhead)
+		public void UpdateCharacter(float time)
 		{
-			Vector3 pos = initialLocation.transform.position;
-
+			//Current action
+			Action action = null;
+			for (int i = 0, count = history.Count; i < count; i++) 
+			{
+				Action a = history[i];
+				if (time >= a.time) 
+					action = a;
+			}
+				
+			//Interpolate state
+			Vector3 pos = currentLocation.transform.position;
 			Vector3 forward = Vector3.back;
 
-			if (history.Count > 0) 
+			if (action == null) 
+			{
+								
+			}
+			else 
+			{
+				float timeFraction = time - action.time;
+
+				ActionEnter actionEnter = action as ActionEnter;	
+
+				if (actionEnter != null) 
+				{
+					Vector3 fromPos = actionEnter.fromLocation.transform.position;
+					Vector3 toPos = actionEnter.toLocation.transform.position;
+
+					forward = (toPos - fromPos).normalized;
+
+					pos = Vector3.Lerp(fromPos, toPos, timeFraction);
+				}
+			}
+
+			transform.position = pos;
+			transform.rotation = Quaternion.Slerp (transform.rotation, Quaternion.LookRotation (forward), 15f * Time.deltaTime);
+
+			if (this == GameManager.instance.currentPlayer) 
+			{
+//				Debug.Log(currentLocation);
+			}
+
+			//Time line
+			float trackStart = GetTrackStart(time);
+			float trackEnd = GetTrackEnd (0, 0f, 0, false, false);
+
+			Vector3 localScale = timeLine.bar.localScale;
+			localScale.x = trackEnd - trackStart;
+			timeLine.bar.localScale = localScale;
+
+			Vector3 localPos = timeLine.bar.localPosition;
+			localPos.x = trackStart;
+			timeLine.bar.localPosition = localPos;
+		}
+
+		public void UpdateCharacterOld(int currentTime, float currentTimeInterpolated, int timeForNextDecision, bool currentPlayer, bool draggingPlayhead)
+		{
+			Vector3 forward = Vector3.back;
+
+			//Movement
+			Action a;
+			float timeFraction;
+
+			if (currentTimeInterpolated > currentTime) 
+			{
+				//Backwards in time
+
+				timeFraction = 1 - (currentTimeInterpolated - currentTime);
+				a = GetAction(currentTime);
+			}
+			else 
+			{
+				//Forward in time
+				if (currentTime > 0) 
+				{
+					a = GetAction (currentTime - 1);
+					timeFraction = currentTime - currentTimeInterpolated;
+				}
+			}
+
+			if (this == GameManager.instance.currentPlayer) 
+			{
+				//Debug.Log (a + ","+history.Count+"."+this.gameObject.name);
+
+				if(history.Count > 0)
+				{
+					Debug.Log (history [0].time + ","+currentTime);
+					//Debug.Log(GameManager.instance.currentPlayer);
+				}
+			}
+
+			ActionEnter ae = a as ActionEnter;
+
+			if (ae != null) 
+			{
+//				Debug.Log (ae);
+
+				Vector3 fromPos = ae.fromLocation.transform.position;
+				Vector3 toPos = ae.toLocation.transform.position;
+
+				transform.position = Vector3.Lerp (fromPos, toPos, timeFraction);
+
+				if (currentTime != currentTimeInterpolated) 
+				{				
+					forward = (fromPos - toPos).normalized;
+				}
+			}
+			else 
+			{
+				if (currentTimeInterpolated == 0) 
+				{
+					transform.position = initialLocation.transform.position;
+				}
+			}
+
+
+
+			Vector3 pos = initialLocation.transform.position;
+
+
+			if (history.Count > 0 && false)  
 			{
 				//Movement
 				Location fromLocation = initialLocation;
@@ -394,7 +513,7 @@ namespace Incteractive
 					{	
 						if (actionEnter != null) 
 						{
-							fromLocation = actionEnter.location;
+							fromLocation = actionEnter.fromLocation;
 							pos = fromLocation.transform.position;
 						}
 					}
@@ -404,7 +523,7 @@ namespace Incteractive
 						{
 							float diff = currentTimeInterpolated - actionEnter.time;
 							Vector3 fromPos = fromLocation.transform.position;
-							Vector3 toPos = actionEnter.location.transform.position;
+							Vector3 toPos = actionEnter.fromLocation.transform.position;
 							pos = Vector3.Lerp (fromPos, toPos, diff);
 
 							if (currentTime != currentTimeInterpolated) 
@@ -465,7 +584,7 @@ namespace Incteractive
 			localPos.x = trackStart;
 			timeLine.bar.localPosition = localPos;
 
-			transform.position = pos;
+//			transform.position = pos;
 
 
 			float timeDiff = Mathf.Abs(currentTime - currentTimeInterpolated);
@@ -539,6 +658,9 @@ namespace Incteractive
 
 		public Action GetAction(int targetTime)
 		{
+			if(targetTime < 0)
+				return null;
+			
 			int time = 0;
 
 			for (int i = 0, count = history.Count; i < count; i++) 

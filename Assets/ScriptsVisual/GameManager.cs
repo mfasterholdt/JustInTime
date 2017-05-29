@@ -32,7 +32,7 @@ namespace Incteractive
 
 		private Material timelineBackgroundMaterial;
 
-		private Character currentPlayer;
+		public Character currentPlayer;
 
 		private Level currentLevel;
 		private int currentTime;
@@ -79,6 +79,8 @@ namespace Incteractive
 				currentLevel.gameObject.SetActive (false);
 
 			level.gameObject.SetActive (true);
+
+			timeMachine.connectedLocations = level.timeMachineConnections;
 
 			currentLevel = level;
 
@@ -304,6 +306,7 @@ namespace Incteractive
 				currentPlayer.UndoActions (currentTime); //UndoActions ();
 
 				Location location = currentPlayer.GetLocationAtTime (currentTime);
+				currentPlayer.currentLocation = location;
 
 				if (location == timeMachine) 
 				{
@@ -329,11 +332,11 @@ namespace Incteractive
 			{
 				Character character = characters[i];
 
-				Action action = character.GetAction (currentTime - 1);
+				Action action = character.GetAction (currentTime);
 
 				if (action != null) 
 				{
-					action.Perform (character, currentTime - 1);
+					action.Perform (character, currentTime);
 				}
 			}
 
@@ -432,7 +435,7 @@ namespace Incteractive
 			{
 				ActionEnter actionEnter = action as ActionEnter;
 
-				if (actionEnter != null && actionEnter.location == timeMachine) 
+				if (actionEnter != null && actionEnter.toLocation == timeMachine) 
 				{
 					return true;
 				}
@@ -568,7 +571,7 @@ namespace Incteractive
 				currentTime = nextTime;
 				timeForNextDecision = nextTime;
 				currentTimeInterpolated = nextTime;
-					
+
 				if (EnterLocation (timeMachine.connectedLocations[0])) 
 				{
 					timelineBackground.sharedMaterial = timelineBackgroundMaterial; 
@@ -685,11 +688,48 @@ namespace Incteractive
 			playheadPos.x = currentTimeInterpolated;
 			playhead.localPosition = playheadPos;
 
+			//Simulate entire timeline
+			for (int i = 0; i < characters.Count; i++) 
+			{
+				characters [i].Reset ();
+			}
+
+			int timeInstant = 0;
+
+			while (timeInstant < currentTimeInterpolated) 
+			{
+				timeInstant++;
+
+				//Perform actions
+				for (int i = 0; i < characters.Count; i++) 
+				{
+					Character character = characters[i];
+					//Action action = character.GetAction (timeInstant);
+
+					Action action = null; 
+					for (int k = 0, count = character.history.Count; k < count; k++) 
+					{
+						Action a = character.history[k];
+						if(timeInstant > a.time)
+						{
+							action = a;
+						}
+					}
+
+					if (action != null) 
+					{
+						action.Perform (character, currentTime);
+					}
+				}
+
+			}	
+
 			//Characters
 			for (int i = 0; i < characters.Count; i++) 
 			{
-				Character character = characters [i];	
-				character.UpdateCharacter (currentTime, currentTimeInterpolated, timeForNextDecision, character == currentPlayer, false);
+				Character character = characters [i];
+				character.UpdateCharacter (currentTimeInterpolated);
+//				character.UpdateCharacter (currentTime, currentTimeInterpolated, timeForNextDecision, character == currentPlayer, false);
 			}
 
 			//Locations
@@ -806,8 +846,8 @@ namespace Incteractive
 			Location currentLocation = currentPlayer.GetLocationAtTime (currentTime);
 
 			if (currentLocation == timeMachine && location != timeMachine)
-			{				
-				Action actionEnter = new ActionEnter (currentTime, 1, timeMachine.connectedLocations [0]);
+			{	
+				Action actionEnter = new ActionEnter (currentTime, 1, timeMachine, timeMachine.connectedLocations [0]);
 				AddAction (actionEnter);
 
 				return true;
@@ -818,7 +858,7 @@ namespace Incteractive
 				{
 					if (currentLocation.connectedLocations [i] == location) 
 					{					
-						Action actionEnter = new ActionEnter (currentTime, 1, location);
+						Action actionEnter = new ActionEnter (currentTime, 1, currentPlayer.currentLocation, location);
 						AddAction (actionEnter);
 
 						return true;
@@ -885,8 +925,10 @@ namespace Incteractive
 
 		private void CreatePlayer(Location location)
 		{
-			GameObject newPlayer = Instantiate (characterPrefab, currentLevel.initialLocation.transform.position, Quaternion.LookRotation(Vector3.back));
+			GameObject newPlayer = Instantiate (characterPrefab, location.transform.position, Quaternion.LookRotation(Vector3.back));
 			currentPlayer = newPlayer.GetComponent<Character> ();
+
+			newPlayer.name = "Player " + characters.Count;
 
 			GameObject newTimelineTrack = Instantiate (characterTimelinePrefab, timeline.transform.position, timeline.transform.rotation);
 			newTimelineTrack.transform.parent = timeline.transform;

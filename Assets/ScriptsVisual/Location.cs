@@ -22,5 +22,10 @@ namespace Incteractive
 					items.Add (item);
 			}
 		}
+
+		public override string ToString ()
+		{
+			return gameObject.name;
+		}
 	}
 }
