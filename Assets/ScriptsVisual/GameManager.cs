@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Linq;
 
 namespace Incteractive
 {
@@ -42,6 +43,7 @@ namespace Incteractive
 		private float blinkTimer;
 
 		private List<Character> characters = new List<Character> ();
+		private List<Item> allItems = new List<Item>();
 
 		public enum State{None, Load, Ready, Forward, Backwards, Scrub, ScrubWait, Action, TimeTravelReady, TimeTravel, Paradox};
 		public State state = State.None;
@@ -86,6 +88,8 @@ namespace Incteractive
 
 			timelineMax = 23;
 			CreatePlayer (level.initialLocation);
+
+			allItems.AddRange (level.GetComponentsInChildren<Item> ().ToList ());
 
 			state = State.Load;
 		}
@@ -374,11 +378,8 @@ namespace Incteractive
 					}
 				}
 			}
-
-
-
+				
 			//----// Paradox Check //----//
-
 			bool paradoxFound = false;
 			for (int i = 0, count = characters.Count; i < count; i++) 
 			{
@@ -590,7 +591,7 @@ namespace Incteractive
 
 		void SetParadoxState()
 		{
-
+			
 			state = State.Paradox;
 		}
 
@@ -613,11 +614,12 @@ namespace Incteractive
 
 						if (paradox != null)  
 						{					
+							paradoxParticles.gameObject.SetActive (true);
 							paradoxParticles.transform.position = paradox.character.transform.position;// character.transform.position;
 						}
 					}
 				}
-
+					
 				//Backwards
 				if (MouseDown (backwardsButton.collider)) 
 				{
@@ -688,14 +690,22 @@ namespace Incteractive
 			playheadPos.x = currentTimeInterpolated;
 			playhead.localPosition = playheadPos;
 
-			//Simulate entire timeline
+			//-----// Simulate Entire Timeline //-----// 
+
+			//Reset
 			for (int i = 0; i < characters.Count; i++) 
 			{
 				characters [i].Reset ();
 			}
 
+			for (int i = 0; i < allItems.Count; i++) 
+			{
+				allItems [i].Reset ();
+			}
+
 			int timeInstant = 0;
 
+			//Simulate
 			while (timeInstant < currentTimeInterpolated) 
 			{
 				timeInstant++;
@@ -724,15 +734,23 @@ namespace Incteractive
 
 			}	
 
+			//-----// Show Current State //-----//
 			//Characters
-			for (int i = 0; i < characters.Count; i++) 
+			for (int i = 0, count = characters.Count; i < count; i++) 
 			{
 				Character character = characters [i];
 				character.UpdateCharacter (currentTimeInterpolated);
 //				character.UpdateCharacter (currentTime, currentTimeInterpolated, timeForNextDecision, character == currentPlayer, false);
 			}
 
-			//Locations
+			//Items
+			for (int i = 0, count = allItems.Count; i < count; i++) 
+			{
+				Item item = allItems [i];
+				item.UpdateItem ();
+			}
+
+			//Location Covers
 			for (int i = 0, length = currentLevel.locations.Length; i < length; i++) 
 			{
 				Location location = currentLevel.locations [i];

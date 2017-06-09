@@ -18,6 +18,12 @@ namespace Incteractive
 		[HideInInspector]
 		public Character characterCarrying;
 
+		[HideInInspector]
+		public Item initialItemAround;
+
+		[HideInInspector]
+		public Character initialCharacterCarrying;
+
 		private int id;
 
 		void Awake()
@@ -28,8 +34,10 @@ namespace Incteractive
 
 				if (item) 
 				{
+					Debug.Log (this + " with " + item +" inside");
 					itemsInside.Add (item);
 					item.itemAround = this;
+					item.initialItemAround = this;
 				}
 			}
 		}
@@ -47,6 +55,34 @@ namespace Incteractive
 		public void SetId(int id)
 		{
 			this.id = id;
+		}
+
+		public void UpdateItem()
+		{
+			if (itemAround) 
+			{
+				transform.position = itemAround.transform.position;
+			}
+//			else if(characterCarrying)
+//			{
+//				transform.position = characterCarrying.carryPivot.position;
+//			}
+		}
+
+		public void Reset()
+		{
+			if (initialItemAround) 
+			{
+				initialItemAround.itemsInside.Add (this);
+				transform.position = initialItemAround.transform.position;
+
+				itemAround = initialItemAround;
+			}
+		}
+
+		public override string ToString ()
+		{
+			return string.Format (gameObject.name);
 		}
 	}
 }

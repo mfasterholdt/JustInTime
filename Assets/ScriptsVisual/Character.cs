@@ -60,6 +60,9 @@ namespace Incteractive
 		public void Reset()
 		{
 			currentLocation = initialLocation;
+
+			//TODO, should go to initial inventory instead
+			inventory.Clear ();
 		}
 
 		public void Destroy()
@@ -392,34 +395,68 @@ namespace Incteractive
 			Vector3 pos = currentLocation.transform.position;
 			Vector3 forward = Vector3.back;
 
-			if (action == null) 
-			{
-								
-			}
-			else 
+			GameObject nextVisuals = visualsDefault;
+
+		
+
+
+			if (action != null) 
 			{
 				float timeFraction = time - action.time;
+				//TODO, mf probably needs more generalised solution here
 
-				ActionEnter actionEnter = action as ActionEnter;	
-
-				if (actionEnter != null) 
+				if (action is ActionEnter) 
 				{
+					ActionEnter actionEnter = action as ActionEnter;	
+					
 					Vector3 fromPos = actionEnter.fromLocation.transform.position;
 					Vector3 toPos = actionEnter.toLocation.transform.position;
 
 					forward = (toPos - fromPos).normalized;
 
-					pos = Vector3.Lerp(fromPos, toPos, timeFraction);
+					pos = Vector3.Lerp (fromPos, toPos, timeFraction);
+				}
+				else if(action is ActionWait) 
+				{
+					ActionWait actionWait = action as ActionWait;
+
+					if (actionWait != null) 
+					{
+						nextVisuals = visualsWait;
+					}
 				}
 			}
 
 			transform.position = pos;
 			transform.rotation = Quaternion.Slerp (transform.rotation, Quaternion.LookRotation (forward), 15f * Time.deltaTime);
 
+			for (int i = 0, count = inventory.Count; i < count; i++) 
+			{
+				Item item = inventory [i];
+				item.transform.position = carryPivot.position;				
+			}
+
+			if(action != null && action is ActionPickup)
+			{
+				float timeFraction = time - action.time;
+				ActionPickup actionPickup = action as ActionPickup;
+				actionPickup.item.transform.position = Vector3.Lerp (actionPickup.itemContainer.transform.position, carryPivot.position, timeFraction);
+			}
+
 			if (this == GameManager.instance.currentPlayer) 
 			{
-//				Debug.Log(currentLocation);
+//				Debug.Log(currentLocation);	
 			}
+
+			if(currentParadoxes.Count > 0)
+			{
+				GameObject paradoxVisuals = currentParadoxes [0].visuals;
+
+				if (paradoxVisuals)
+					nextVisuals = paradoxVisuals;
+			}
+
+			SetVisuals (nextVisuals);					
 
 			//Time line
 			float trackStart = GetTrackStart(time);

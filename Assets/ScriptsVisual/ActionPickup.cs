@@ -6,27 +6,29 @@ namespace Incteractive
 {
 	public class ActionPickup : Action 
 	{
-		Item item; 
-		Item container;
+		public Item item; 
+		public Item itemContainer;
 
-		public ActionPickup(int time, int duration, Item item, Item container)
+		public ActionPickup(int time, int duration, Item item, Item itemContainer)
 		{
 			this.time = time;
 			this.duration = 1;
 			this.item = item;
-			this.container = container;
+			this.itemContainer = itemContainer;
 		}
 
 		public override bool Perform (Character character, int currentTime)
 		{
 			//Find Item
-			Location currentLocation = character.GetLocationAtTime(currentTime);
+			//Location currentLocation = character.GetLocationAtTime(currentTime);
+
+			Location currentLocation = character.currentLocation;
 
 			for (int i = 0, count = currentLocation.items.Count; i < count; i++) 
 			{
 				Item foundContainer = currentLocation.items[i];
 
-				if(foundContainer.Compare(container))
+				if(foundContainer.Compare(itemContainer))
 				{
 					Item foundItem = foundContainer.itemsInside[0];
 
