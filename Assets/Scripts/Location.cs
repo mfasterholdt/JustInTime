@@ -31,5 +31,4 @@ public class Location : MonoBehaviour
 		return true;
 	}
 
-
 }

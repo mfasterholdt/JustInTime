@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Incteractive
 {
-	public class GameManager : MonoBehaviour 
+	public class GameManager : MonoBehaviour
 	{
 		public Level initialLevel;
 		public GameObject characterPrefab;
@@ -42,10 +42,25 @@ namespace Incteractive
 
 		private float blinkTimer;
 
-		private List<Character> characters = new List<Character> ();
+		private List<Character> characters = new List<Character>();
 		private List<Item> allItems = new List<Item>();
 
-		public enum State{None, Load, Ready, Forward, Backwards, Scrub, ScrubWait, Action, TimeTravelReady, TimeTravel, Paradox};
+		public enum State
+		{
+			None,
+			Load,
+			Ready,
+			Forward,
+			Backwards,
+			Scrub,
+			ScrubWait,
+			Action,
+			TimeTravelReady,
+			TimeTravel,
+			Paradox}
+
+		;
+
 		public State state = State.None;
 
 		public RaycastHit[] mouseHits = new RaycastHit[0];
@@ -68,35 +83,35 @@ namespace Incteractive
 			instance = this;
 		}
 
-		void Start ()
+		void Start()
 		{
 			timelineBackgroundMaterial = timelineBackground.material;
 
-			SetLoadState (initialLevel);
+			SetLoadState(initialLevel);
 		}
-			
+
 		void SetLoadState(Level level)
 		{
-			if(currentLevel)
-				currentLevel.gameObject.SetActive (false);
+			if (currentLevel)
+				currentLevel.gameObject.SetActive(false);
 
-			level.gameObject.SetActive (true);
+			level.gameObject.SetActive(true);
 
 			timeMachine.connectedLocations = level.timeMachineConnections;
 
 			currentLevel = level;
 
 			timelineMax = 23;
-			CreatePlayer (level.initialLocation);
+			CreatePlayer(level.initialLocation);
 
-			allItems.AddRange (level.GetComponentsInChildren<Item> ().ToList ());
+			allItems.AddRange(level.GetComponentsInChildren<Item>().ToList());
 
 			state = State.Load;
 		}
 
 		void LoadState()
 		{	
-			SetReadyState ();
+			SetReadyState();
 		}
 
 		void SetReadyState()
@@ -114,71 +129,97 @@ namespace Incteractive
 //			}
 
 			//Backwards
-			if (MouseDown (backwardsButton.collider) && currentTime > 0) 
+			if (MouseDown(backwardsButton.collider) && currentTime > 0)
 			{
-				SetBackwardsState ();
+				SetBackwardsState();
 				return;
 			}
 
 			//Scrub
-			if (MouseDown(timelineCollider)) 
+			if (MouseDown(timelineCollider))
 			{
-				SetScrubState ();
+				SetScrubState();
 				return;
 			}
 
 			//Interactions
-			bool isInteracting = Interactions ();
+			bool isInteracting = Interactions();
 
-			if (isInteracting) 
+			if (isInteracting)
 			{
-				SetActionState ();
+				SetActionState();
 			}
 		}
 
 		bool Interactions()
 		{
-			//----// Items //----//
+			Item item = MouseDown<Item>();
+            Location location = MouseDown<Location>();
+			
+            //----// Items //----//
+            if (item && location == currentPlayer.currentLocation)
+            {
+				if (item.isMovable)
+				{			
+					//Item	
+                    if (item.itemAround)
+					{						
+						float pickupOffset = currentPlayer.GetPickupOffset();
+                        Item itemFound = item.itemAround.itemsInside[item.itemAround.itemsInside.Count - 1];
+						ActionPickup actionPickup = new ActionPickup(currentTime, 1, itemFound, item.itemAround, pickupOffset);
+						AddAction(actionPickup);
+						return true;
+					}
+					else if(item.characterCarrying) 
+					{
+//						Item foundContainer = currentPlayer.currentLocation.GetContainer();
+//
+//						if (foundContainer)
+//						{
+//							Item itemFound = currentPlayer.inventory[currentPlayer.inventory.Count - 1];
+//
+//							ActionDrop actionDrop = new ActionDrop(currentTime, 1, itemFound, foundContainer); 
+//							AddAction(actionDrop);
+//							return true;		
+//						}
+					}
 
-			Item item = MouseDown<Item> ();
-			if (item) 
-			{
-				//Pickup
-				if (item.isMovable) 
-				{					
-					if (item.itemAround) 
-					{
-						ActionPickup actionPickup = new ActionPickup (currentTime, 1, item.itemAround.itemsInside [0], item.itemAround);
-						AddAction (actionPickup);
-						return true;
-					}
-					else 
-					{
-						ActionPickup actionPickup = new ActionPickup (currentTime, 1, item, item);
-						AddAction (actionPickup);
-						return true;
-					}
 				}
-				else if (item.isContainer && item.itemsInside.Count > 0) 
+                else if (item.isContainer)
 				{
-					ActionPickup actionPickup = new ActionPickup (currentTime, 1, item.itemsInside [0], item);
-					AddAction (actionPickup);
-					return true;
+					//Item Container
+//					if (item.itemsInside.Count > 0)
+//					{
+//						ActionPickup actionPickup = new ActionPickup(currentTime, 1, item.itemsInside[0], item);
+//						AddAction(actionPickup);
+//						return true;
+//					}
+//					else
+//					{
+						if (currentPlayer.inventory.Count > 0)
+						{							
+							Item itemFound = currentPlayer.inventory[currentPlayer.inventory.Count - 1];
+							ActionDrop actionDrop = new ActionDrop(currentTime, 1, itemFound, item); 
+							AddAction(actionDrop);
+							return true;
+						}
+//					}
 				}
 			}
-
-			//----// Location //----//
-
-			Location location = MouseDown<Location>();
-			if(location)
+			else
 			{
-				if (EnterLocation (location)) 
-					return true;
+				//----// Location //----//
 
-				if (WaitLocation (location))
-					return true;
+				if (location)
+				{
+					if (EnterLocation(location))
+						return true;
+
+					if (WaitLocation(location))
+						return true;
+				}
+
 			}
-
 			return false;
 		}
 
@@ -189,14 +230,14 @@ namespace Incteractive
 
 		void ScrubState()
 		{
-			Ray mouseRay = Camera.main.ScreenPointToRay (Input.mousePosition);
+			Ray mouseRay = Camera.main.ScreenPointToRay(Input.mousePosition);
 			float nextPlayheadPos = currentTime;
 
 			RaycastHit hit;
-			if (canvasCollider.Raycast (mouseRay, out hit, 100f)) 
+			if (canvasCollider.Raycast(mouseRay, out hit, 100f))
 			{
-				Debug.DrawLine (mouseRay.origin, hit.point, Color.red);
-				Vector3 hitLocalPos = timeline.transform.InverseTransformPoint (hit.point);
+				Debug.DrawLine(mouseRay.origin, hit.point, Color.red);
+				Vector3 hitLocalPos = timeline.transform.InverseTransformPoint(hit.point);
 
 				nextPlayheadPos = Mathf.Clamp(hitLocalPos.x, 0, timelineMax);
 			}
@@ -211,11 +252,11 @@ namespace Incteractive
 
 				float diff = Mathf.Abs(currentTime - currentTimeInterpolated);
 				float interpolateSpeed = diff > 1f ? 20f : 2f;
-				SetScrubWaitState (interpolateSpeed);
+				SetScrubWaitState(interpolateSpeed);
 								
 				//UndoActions ();
 			}
-			else 
+			else
 			{
 //				float dragTime = nextPlayheadPos;
 
@@ -245,7 +286,7 @@ namespace Incteractive
 
 		void ScrubWaitState()
 		{
-			InterpolateTime (scrubWaitInterpolateSpeed);
+			InterpolateTime(scrubWaitInterpolateSpeed);
 
 //			int lastTime = currentPlayer.GetLastTime ();
 
@@ -255,39 +296,39 @@ namespace Incteractive
 //				AddAction (actionWait, false);
 //			}
 
-			if (timeSynced) 
+			if (timeSynced)
 			{
-				SetReadyState ();
+				SetReadyState();
 			}
 		}
 
 		void SetForwardState()
 		{
-			if (currentPlayer.GetAction (currentTime) == null)
+			if (currentPlayer.GetAction(currentTime) == null)
 			{
-				Action actionWait = new ActionWait (currentTime, 1);
-				AddAction (actionWait);
+				Action actionWait = new ActionWait(currentTime, 1);
+				AddAction(actionWait);
 			}
-			else 
+			else
 			{
 				timeForNextDecision++;
 				currentTime++;
 			}
 
-			forwardButton.Toggle (true);
+			forwardButton.Toggle(true);
 
 			state = State.Forward;
 		}
 
 		void ForwardState()
 		{			
-			InterpolateTime ();
+			InterpolateTime();
 
-			if (timeSynced) 
+			if (timeSynced)
 			{
-				forwardButton.Toggle (false);
+				forwardButton.Toggle(false);
 
-				SetReadyState ();
+				SetReadyState();
 			}
 		}
 
@@ -303,28 +344,28 @@ namespace Incteractive
 
 		void BackwardsState()
 		{
-			InterpolateTime ();
+			InterpolateTime();
 
-			if (timeSynced) 
+			if (timeSynced)
 			{
-				currentPlayer.UndoActions (currentTime); //UndoActions ();
+				currentPlayer.UndoActions(currentTime); //UndoActions ();
 
-				Location location = currentPlayer.GetLocationAtTime (currentTime);
+				Location location = currentPlayer.GetLocationAtTime(currentTime);
 				currentPlayer.currentLocation = location;
 
-				if (location == timeMachine) 
+				if (location == timeMachine)
 				{
-					SetTimeTravelReadyState ();
+					SetTimeTravelReadyState();
 				}
-				else if (MouseDown (backwardsButton.collider) && currentTime > 0) 
+				else if (MouseDown(backwardsButton.collider) && currentTime > 0)
 				{
 					currentTime--;
 					timeForNextDecision = currentTime;
 				}
-				else 
+				else
 				{
 //					backwardsButton.Toggle (false);
-					SetReadyState ();
+					SetReadyState();
 				}
 			}
 		}
@@ -332,47 +373,47 @@ namespace Incteractive
 		void SetActionState()
 		{
 			//Perform actions
-			for (int i = 0; i < characters.Count; i++) 
+			for (int i = 0; i < characters.Count; i++)
 			{
 				Character character = characters[i];
 
-				Action action = character.GetAction (currentTime);
+				Action action = character.GetAction(currentTime);
 
-				if (action != null) 
+				if (action != null)
 				{
-					action.Perform (character, currentTime);
+					action.Perform(character, currentTime);
 				}
 			}
 
 			//Progress Time
 			currentTime++;
 
-			Location currentLocation = currentPlayer.GetLocationAtTime (currentTime);
+			Location currentLocation = currentPlayer.GetLocationAtTime(currentTime);
 
 			//Current Observations
-			for (int i = 0, count = characters.Count; i < count; i++) 
+			for (int i = 0, count = characters.Count; i < count; i++)
 			{
 				characters[i].CreateCurrentObservation(currentTime, characters);
 			}
 
 			//Check Observations
-			for (int i = 0, count = characters.Count; i < count; i++) 
+			for (int i = 0, count = characters.Count; i < count; i++)
 			{
-				Character character = characters [i];
+				Character character = characters[i];
 
 				if (character != currentPlayer)
 				{
-					character.CheckObservations (currentTime);
+					character.CheckObservations(currentTime);
 
 					//Check crossing characters
 					if (currentLocation.isTimeMachine == false)
 					{
-						if (currentLocation == character.GetLocationAtTime (currentTime - 1))							
+						if (currentLocation == character.GetLocationAtTime(currentTime - 1))
 						{ 
-							if (currentPlayer.GetLocationAtTime (currentTime - 1) == character.GetLocationAtTime (currentTime)) 
+							if (currentPlayer.GetLocationAtTime(currentTime - 1) == character.GetLocationAtTime(currentTime))
 							{
-								Paradox paradox = new Paradox (character.visualsMeet, currentPlayer);
-								character.currentParadoxes.Add (paradox);
+								Paradox paradox = new Paradox(character.visualsMeet, currentPlayer);
+								character.currentParadoxes.Add(paradox);
 							}
 						}
 					}
@@ -381,19 +422,19 @@ namespace Incteractive
 				
 			//----// Paradox Check //----//
 			bool paradoxFound = false;
-			for (int i = 0, count = characters.Count; i < count; i++) 
+			for (int i = 0, count = characters.Count; i < count; i++)
 			{
-				Character character = characters [i];
-				if (character.currentParadoxes.Count > 0) 
+				Character character = characters[i];
+				if (character.currentParadoxes.Count > 0)
 				{
 					paradoxFound = true;
 					break;
 				}
 			}
 
-			if (paradoxFound) 
+			if (paradoxFound)
 			{
-				SetParadoxState ();
+				SetParadoxState();
 			}
 			else
 			{
@@ -404,25 +445,25 @@ namespace Incteractive
 
 		void ActionState()
 		{
-			InterpolateTime ();
+			InterpolateTime();
 
-			if (timeSynced) 
+			if (timeSynced)
 			{
-				if (timeForNextDecision > currentTime) 
+				if (timeForNextDecision > currentTime)
 				{
-					SetActionState ();
-				} 
-				else 
+					SetActionState();
+				}
+				else
 				{
 					bool isTimeTravelling = TimeTravelCheck();
 
-					if (isTimeTravelling) 
+					if (isTimeTravelling)
 					{
-						TimeTravel ();
+						TimeTravel();
 					}
-					else 
+					else
 					{
-						SetReadyState ();
+						SetReadyState();
 					}
 				}
 			}
@@ -430,13 +471,13 @@ namespace Incteractive
 
 		bool TimeTravelCheck()
 		{
-			Action action = currentPlayer.GetLastAction ();
+			Action action = currentPlayer.GetLastAction();
 
-			if (action != null) 
+			if (action != null)
 			{
 				ActionEnter actionEnter = action as ActionEnter;
 
-				if (actionEnter != null && actionEnter.toLocation == timeMachine) 
+				if (actionEnter != null && actionEnter.toLocation == timeMachine)
 				{
 					return true;
 				}
@@ -445,45 +486,45 @@ namespace Incteractive
 			return false;
 		}
 
-//		void SetMoveState()
-//		{
-//			state = State.Move;	
-//		}
-//
-//		void MoveState()
-//		{
-//			InterpolateTime ();
-//
-//			if (timeSynced) 
-//			{
-//				Action action = currentPlayer.GetLastAction();
-//
-//				if (action != null) 
-//				{
-//					ActionEnter actionEnter = action as ActionEnter;
-//
-//					if (actionEnter != null && actionEnter.location == timeMachine) 
-//					{
-//						TimeTravel ();
-//						return;
-//					}
-//				}
-//
-//				SetReadyState ();
-//			}
-//
-//		}
+		//		void SetMoveState()
+		//		{
+		//			state = State.Move;
+		//		}
+		//
+		//		void MoveState()
+		//		{
+		//			InterpolateTime ();
+		//
+		//			if (timeSynced)
+		//			{
+		//				Action action = currentPlayer.GetLastAction();
+		//
+		//				if (action != null)
+		//				{
+		//					ActionEnter actionEnter = action as ActionEnter;
+		//
+		//					if (actionEnter != null && actionEnter.location == timeMachine)
+		//					{
+		//						TimeTravel ();
+		//						return;
+		//					}
+		//				}
+		//
+		//				SetReadyState ();
+		//			}
+		//
+		//		}
 
 		void SetTimeTravelReadyState()
 		{
-			playhead.gameObject.SetActive (false);
+			playhead.gameObject.SetActive(false);
 
 			state = State.TimeTravelReady;
 		}
 
 		void TimeTravelReadyState()
 		{
-			if (blinkTimer > 0f) 
+			if (blinkTimer > 0f)
 			{
 				blinkTimer -= Time.deltaTime;
 			}
@@ -494,7 +535,7 @@ namespace Incteractive
 					timelineBackground.sharedMaterial = timelineBackgroundMaterial; 
 					blinkTimer = 0.4f;
 				}
-				else 
+				else
 				{
 					timelineBackground.sharedMaterial = whiteMaterial; 
 					blinkTimer = 0.15f;
@@ -502,13 +543,13 @@ namespace Incteractive
 			}
 
 			//Destroy current iteration
-			if (mousePress && MouseDown (backwardsButton.collider)) 
+			if (mousePress && MouseDown(backwardsButton.collider))
 			{
-				characters.Remove (currentPlayer);
+				characters.Remove(currentPlayer);
 
-				currentPlayer.Destroy ();
-				currentPlayer = characters [characters.Count - 1];
-				int lastTime = currentPlayer.GetLastTime ();
+				currentPlayer.Destroy();
+				currentPlayer = characters[characters.Count - 1];
+				int lastTime = currentPlayer.GetLastTime();
 
 				currentTime = lastTime;
 				timeForNextDecision = lastTime;
@@ -516,33 +557,33 @@ namespace Incteractive
 	
 				playheadRenderer.material = currentPlayer.primaryMaterial;
 
-				playhead.gameObject.SetActive (true);
+				playhead.gameObject.SetActive(true);
 				timelineBackground.sharedMaterial = timelineBackgroundMaterial; 
 
-				SetBackwardsState ();
+				SetBackwardsState();
 				//SetWaitState ();
 
 				return;
 			}
 
 			//Press Timeline
-			if (mousePress && MouseDown (timelineCollider)) 
+			if (mousePress && MouseDown(timelineCollider))
 			{
-				SetTimeTravelState ();
+				SetTimeTravelState();
 			}
 		}
 
 		void SetTimeTravelState()
 		{
-			playhead.gameObject.SetActive (true);
+			playhead.gameObject.SetActive(true);
 			timelineBackground.sharedMaterial = whiteMaterial; 
 
 			float nextPlayheadPos = currentTime;
 
 			RaycastHit hit;
-			if (canvasCollider.Raycast (Camera.main.ScreenPointToRay (Input.mousePosition), out hit, 100f)) 
+			if (canvasCollider.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hit, 100f))
 			{
-				Vector3 hitLocalPos = timeline.transform.InverseTransformPoint (hit.point);
+				Vector3 hitLocalPos = timeline.transform.InverseTransformPoint(hit.point);
 				nextPlayheadPos = Mathf.Clamp(hitLocalPos.x, 0, timelineMax);
 			}
 
@@ -559,13 +600,13 @@ namespace Incteractive
 			float nextPlayheadPos = currentTime;
 
 			RaycastHit hit;
-			if (canvasCollider.Raycast (Camera.main.ScreenPointToRay (Input.mousePosition), out hit, 100f)) 
+			if (canvasCollider.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hit, 100f))
 			{
-				Vector3 hitLocalPos = timeline.transform.InverseTransformPoint (hit.point);
+				Vector3 hitLocalPos = timeline.transform.InverseTransformPoint(hit.point);
 				nextPlayheadPos = Mathf.Clamp(hitLocalPos.x, 0, timelineMax);
 			}
 
-			int nextTime = Mathf.FloorToInt (nextPlayheadPos); 
+			int nextTime = Mathf.FloorToInt(nextPlayheadPos); 
 
 			if (mouseDown == false)
 			{
@@ -573,13 +614,13 @@ namespace Incteractive
 				timeForNextDecision = nextTime;
 				currentTimeInterpolated = nextTime;
 
-				if (EnterLocation (timeMachine.connectedLocations[0])) 
+				if (EnterLocation(timeMachine.connectedLocations[0]))
 				{
 					timelineBackground.sharedMaterial = timelineBackgroundMaterial; 
-					SetActionState ();
+					SetActionState();
 				}
 			}
-			else 
+			else
 			{
 				//currentTime = nextTime;
 				currentTime = Mathf.FloorToInt(nextPlayheadPos);
@@ -597,90 +638,90 @@ namespace Incteractive
 
 		void ParadoxState()
 		{
-			InterpolateTime ();
+			InterpolateTime();
 
-			backwardsButton.transform.localScale = Vector3.one * (1.5f + 0.3f * Mathf.Sin (Time.time * 5f));
+			backwardsButton.transform.localScale = Vector3.one * (1.5f + 0.3f * Mathf.Sin(Time.time * 5f));
 
-			if (timeSynced) 
+			if (timeSynced)
 			{
 				//TODO this should be done differently 
-				for (int i = 0, count = characters.Count; i < count; i++) 
+				for (int i = 0, count = characters.Count; i < count; i++)
 				{
-					Character character = characters [i];
+					Character character = characters[i];
 
-					if (character.currentParadoxes.Count > 0) 
+					if (character.currentParadoxes.Count > 0)
 					{
-						Paradox paradox = character.currentParadoxes [0];
+						Paradox paradox = character.currentParadoxes[0];
 
-						if (paradox != null)  
+						if (paradox != null)
 						{					
-							paradoxParticles.gameObject.SetActive (true);
+							paradoxParticles.gameObject.SetActive(true);
 							paradoxParticles.transform.position = paradox.character.transform.position;// character.transform.position;
 						}
 					}
 				}
 					
 				//Backwards
-				if (MouseDown (backwardsButton.collider)) 
+				if (MouseDown(backwardsButton.collider))
 				{
-					for (int i = 0, count = characters.Count; i < count; i++) 
+					for (int i = 0, count = characters.Count; i < count; i++)
 					{
 						characters[i].currentParadoxes.Clear();
 					}
 
 					backwardsButton.transform.localScale = Vector3.one;
 
-					paradoxParticles.gameObject.SetActive (false);
+					paradoxParticles.gameObject.SetActive(false);
 
-					SetBackwardsState ();
+					SetBackwardsState();
 				}
 			}
 		}
 
 		void Update()
 		{
-			UpdateMouseInput ();
+			UpdateMouseInput();
 
-			bool backwardsButtonDown = MouseDown (backwardsButton.collider) || Input.GetKey(KeyCode.Z);
-			backwardsButton.Toggle (backwardsButtonDown);
+			bool backwardsButtonDown = MouseDown(backwardsButton.collider) || Input.GetKey(KeyCode.Z);
+			backwardsButton.Toggle(backwardsButtonDown);
 
 			timeSynced = currentTimeInterpolated == currentTime; 
 
-			switch (state) 
+			switch (state)
 			{
-			case State.Load:
-				LoadState ();
-				break;
-			case State.Ready:
-				ReadyState ();
-				break;			
-			case State.Scrub:
-				ScrubState ();
-				break;	
-			case State.ScrubWait:
-				ScrubWaitState ();
-				break;
-			case State.Forward:
-				ForwardState ();
-				break;
-			case State.Backwards:
-				BackwardsState ();
-				break;			
-			case State.Action:
-				ActionState ();
-				break;
+				case State.Load:
+					LoadState();
+					break;
+				case State.Ready:
+					ReadyState();
+					break;			
+				case State.Scrub:
+					ScrubState();
+					break;	
+				case State.ScrubWait:
+					ScrubWaitState();
+					break;
+				case State.Forward:
+					ForwardState();
+					break;
+				case State.Backwards:
+					BackwardsState();
+					break;			
+				case State.Action:
+					ActionState();
+					break;
 //			case State.Move:
 //				MoveState ();
 //				break;
-			case State.TimeTravelReady:
-				TimeTravelReadyState ();
-				break;
-			case State.TimeTravel:
-				TimeTravelState ();
-				break;
-			case State.Paradox:
-				ParadoxState ();
-				break;
+				case State.TimeTravelReady:
+					TimeTravelReadyState();
+					break;
+				case State.TimeTravel:
+					TimeTravelState();
+					break;
+				case State.Paradox:
+					ParadoxState();
+					break;
 			}
 
 			//----// Updates //----//
@@ -693,77 +734,77 @@ namespace Incteractive
 			//-----// Simulate Entire Timeline //-----// 
 
 			//Reset
-			for (int i = 0; i < characters.Count; i++) 
+			for (int i = 0; i < characters.Count; i++)
 			{
-				characters [i].Reset ();
+				characters[i].Reset();
 			}
 
-			for (int i = 0; i < allItems.Count; i++) 
+			for (int i = 0; i < allItems.Count; i++)
 			{
-				allItems [i].Reset ();
+				allItems[i].Reset();
 			}
 
 			int timeInstant = 0;
 
 			//Simulate
-			while (timeInstant < currentTimeInterpolated) 
+			while (timeInstant < currentTimeInterpolated)
 			{
 				timeInstant++;
 
 				//Perform actions
-				for (int i = 0; i < characters.Count; i++) 
+				for (int i = 0; i < characters.Count; i++)
 				{
 					Character character = characters[i];
 					//Action action = character.GetAction (timeInstant);
 
 					Action action = null; 
-					for (int k = 0, count = character.history.Count; k < count; k++) 
+					for (int k = 0, count = character.history.Count; k < count; k++)
 					{
 						Action a = character.history[k];
-						if(timeInstant > a.time)
+						if (timeInstant > a.time)
 						{
 							action = a;
 						}
 					}
 
-					if (action != null) 
+					if (action != null)
 					{
-						action.Perform (character, currentTime);
+						action.Perform(character, currentTime);
 					}
 				}
 
 			}	
 
 			//-----// Show Current State //-----//
-			//Characters
-			for (int i = 0, count = characters.Count; i < count; i++) 
+			//Items
+			for (int i = 0, count = allItems.Count; i < count; i++)
 			{
-				Character character = characters [i];
-				character.UpdateCharacter (currentTimeInterpolated);
+				Item item = allItems[i];
+				item.UpdateItem();
+			}
+
+			//Characters
+			for (int i = 0, count = characters.Count; i < count; i++)
+			{
+				Character character = characters[i];
+				character.UpdateCharacter(currentTimeInterpolated);
 //				character.UpdateCharacter (currentTime, currentTimeInterpolated, timeForNextDecision, character == currentPlayer, false);
 			}
 
-			//Items
-			for (int i = 0, count = allItems.Count; i < count; i++) 
-			{
-				Item item = allItems [i];
-				item.UpdateItem ();
-			}
-
 			//Location Covers
-			for (int i = 0, length = currentLevel.locations.Length; i < length; i++) 
+			for (int i = 0, length = currentLevel.locations.Length; i < length; i++)
 			{
-				Location location = currentLevel.locations [i];
-				if (location.cover) 
+				Location location = currentLevel.locations[i];
+				if (location.cover)
 				{
-					location.cover.SetActive (true);
+					location.cover.SetActive(true);
 
-					for (int j = 0, count = characters.Count; j < count; j++) 
+					for (int j = 0, count = characters.Count; j < count; j++)
 					{
-						Character character = characters [j];
-						if (character.GetLocationAtTime (Mathf.RoundToInt(currentTimeInterpolated)) == location)
+						Character character = characters[j];
+						if (character.GetLocationAtTime(Mathf.RoundToInt(currentTimeInterpolated)) == location)
 						{
-							location.cover.SetActive (false);
+							location.cover.SetActive(false);
 							break;
 						}
 					}
@@ -771,9 +812,9 @@ namespace Incteractive
 			}
 
 			//Reload scene on Escape
-			if (Input.GetKeyDown (KeyCode.Escape)) 
+			if (Input.GetKeyDown(KeyCode.Escape))
 			{
-				SceneManager.LoadScene (SceneManager.GetActiveScene ().name);
+				SceneManager.LoadScene(SceneManager.GetActiveScene().name);
 			}
 		}
 
@@ -781,16 +822,16 @@ namespace Incteractive
 		{
 			mousePreviousDown = mouseDown;
 
-			mouseDown = Input.GetMouseButton (0);
+			mouseDown = Input.GetMouseButton(0);
 			mousePress = mouseDown && !mousePreviousDown;
 			mouseRelease = !mouseDown && mousePreviousDown;
 
-			if (Input.GetMouseButton (0)) 
+			if (Input.GetMouseButton(0))
 			{				
-				Ray mouseRay = Camera.main.ScreenPointToRay (Input.mousePosition);
-				mouseHits = Physics.RaycastAll (mouseRay, 100);
+				Ray mouseRay = Camera.main.ScreenPointToRay(Input.mousePosition);
+				mouseHits = Physics.RaycastAll(mouseRay, 100);
 			}
-			else 
+			else
 			{
 				mouseHits = new RaycastHit[0];
 			}
@@ -798,9 +839,9 @@ namespace Incteractive
 
 		public bool MouseDown(Collider collider)
 		{
-			for (int i = 0, length = mouseHits.Length; i < length; i++) 
+			for (int i = 0, length = mouseHits.Length; i < length; i++)
 			{
-				Collider hitCollider = mouseHits [i].collider;
+				Collider hitCollider = mouseHits[i].collider;
 			
 				if (collider == hitCollider)
 					return true;
@@ -811,16 +852,16 @@ namespace Incteractive
 
 		public T MouseDown<T>() where T : class
 		{
-			for (int i = 0, length = mouseHits.Length; i < length; i++) 
+			for (int i = 0, length = mouseHits.Length; i < length; i++)
 			{
-				Collider hitCollider = mouseHits [i].collider;
+				Collider hitCollider = mouseHits[i].collider;
 				Transform hitTransform = hitCollider.gameObject.transform;
 
 				if (hitTransform.parent)
 				{
-					T hitComponent = hitTransform.parent.GetComponent<T> ();
+					T hitComponent = hitTransform.parent.GetComponent<T>();
 
-					if(hitComponent != null)
+					if (hitComponent != null)
 						return hitComponent;
 				}
 			}
@@ -831,9 +872,9 @@ namespace Incteractive
 		void InterpolateTime(float speed = 2f)
 		{
 			float diff = currentTime - currentTimeInterpolated;
-			float addTime = Mathf.Sign (diff) * speed * Time.deltaTime; 
+			float addTime = Mathf.Sign(diff) * speed * Time.deltaTime; 
 
-			if (Mathf.Abs (addTime) <  Mathf.Abs (diff)) 
+			if (Mathf.Abs(addTime) < Mathf.Abs(diff))
 			{
 				currentTimeInterpolated += addTime;				
 			}
@@ -842,7 +883,7 @@ namespace Incteractive
 				currentTimeInterpolated = currentTime;
 			}
 		}
-			
+
 		void TimeTravel()
 		{
 //			currentLevel.Reset();
@@ -850,23 +891,23 @@ namespace Incteractive
 //			for (int i = 0, count = characters.Count; i < count; i++) 
 //				characters[i].Reset();	
 
-			CreatePlayer (timeMachine);
+			CreatePlayer(timeMachine);
 
 //			currentTime = 0;
 //			currentTimeInterpolated = 0;
 //			timeForNextDecision = 0;
 
 			SetTimeTravelReadyState();
-		}	
+		}
 
 		public bool EnterLocation(Location location)
 		{
-			Location currentLocation = currentPlayer.GetLocationAtTime (currentTime);
+			Location currentLocation = currentPlayer.GetLocationAtTime(currentTime);
 
 			if (currentLocation == timeMachine && location != timeMachine)
 			{	
-				Action actionEnter = new ActionEnter (currentTime, 1, timeMachine, timeMachine.connectedLocations [0]);
-				AddAction (actionEnter);
+				Action actionEnter = new ActionEnter(currentTime, 1, timeMachine, timeMachine.connectedLocations[0]);
+				AddAction(actionEnter);
 
 				return true;
 			}
@@ -874,10 +915,10 @@ namespace Incteractive
 			{
 				for (int i = 0, length = currentLocation.connectedLocations.Length; i < length; i++)
 				{
-					if (currentLocation.connectedLocations [i] == location) 
+					if (currentLocation.connectedLocations[i] == location)
 					{					
-						Action actionEnter = new ActionEnter (currentTime, 1, currentPlayer.currentLocation, location);
-						AddAction (actionEnter);
+						Action actionEnter = new ActionEnter(currentTime, 1, currentPlayer.currentLocation, location);
+						AddAction(actionEnter);
 
 						return true;
 					}
@@ -889,12 +930,12 @@ namespace Incteractive
 
 		public bool WaitLocation(Location location)
 		{
-			Location currentLocation = currentPlayer.GetLocationAtTime (currentTime);
+			Location currentLocation = currentPlayer.GetLocationAtTime(currentTime);
 
-			if (location == currentLocation && currentTime < timelineMax)			
+			if (location == currentLocation && currentTime < timelineMax)
 			{
-				Action actionWait = new ActionWait (currentTime, 1);
-				AddAction (actionWait);
+				Action actionWait = new ActionWait(currentTime, 1);
+				AddAction(actionWait);
 
 				return true;
 			}	
@@ -922,44 +963,44 @@ namespace Incteractive
 //			}
 		}
 
-//		void UndoActions()
-//		{
-//			currentPlayer.UndoActions (currentTime);
-//
-//			if (currentPlayer.history.Count > 0) 
-//			{
-//				for (int i = currentPlayer.history.Count - 1; i >= 0; i--) 
-//				{				
-//					Action action = currentPlayer.history[i];
-//
-//					if (action.time >= currentTime) 
-//					{
-//						currentPlayer.history.Remove (action);
-//						currentPlayer.timeLine.RemoveSymbols (currentTime);
-//					}
-//				}
-//			}
-//		}
+		//		void UndoActions()
+		//		{
+		//			currentPlayer.UndoActions (currentTime);
+		//
+		//			if (currentPlayer.history.Count > 0)
+		//			{
+		//				for (int i = currentPlayer.history.Count - 1; i >= 0; i--)
+		//				{
+		//					Action action = currentPlayer.history[i];
+		//
+		//					if (action.time >= currentTime)
+		//					{
+		//						currentPlayer.history.Remove (action);
+		//						currentPlayer.timeLine.RemoveSymbols (currentTime);
+		//					}
+		//				}
+		//			}
+		//		}
 
 		private void CreatePlayer(Location location)
 		{
-			GameObject newPlayer = Instantiate (characterPrefab, location.transform.position, Quaternion.LookRotation(Vector3.back));
-			currentPlayer = newPlayer.GetComponent<Character> ();
+			GameObject newPlayer = Instantiate(characterPrefab, location.transform.position, Quaternion.LookRotation(Vector3.back));
+			currentPlayer = newPlayer.GetComponent<Character>();
 
 			newPlayer.name = "Player " + characters.Count;
 
-			GameObject newTimelineTrack = Instantiate (characterTimelinePrefab, timeline.transform.position, timeline.transform.rotation);
+			GameObject newTimelineTrack = Instantiate(characterTimelinePrefab, timeline.transform.position, timeline.transform.rotation);
 			newTimelineTrack.transform.parent = timeline.transform;
 
 			Vector3 trackPosLocal = Vector3.zero;
 			trackPosLocal.y = characters.Count * -0.75f;
 			newTimelineTrack.transform.localPosition = trackPosLocal;
 
-			Material material = playerMaterials [characters.Count % playerMaterials.Length];
-			currentPlayer.Setup (location, material, newTimelineTrack.transform);
+			Material material = playerMaterials[characters.Count % playerMaterials.Length];
+			currentPlayer.Setup(location, material, newTimelineTrack.transform);
 			playheadRenderer.material = material;
 
-			characters.Add (currentPlayer);		
+			characters.Add(currentPlayer);		
 		}
 	}
 }

@@ -8,21 +8,22 @@ namespace Incteractive
 	{
 		public bool isMovable;
 		public bool isContainer;
+		public float height = 0.8f;
 
-		[HideInInspector]
+		//[HideInInspector]
 		public List<Item> itemsInside = new List<Item>();
 
-		[HideInInspector]
+		//[HideInInspector]
 		public Item itemAround;
 
 		[HideInInspector]
 		public Character characterCarrying;
 
-		[HideInInspector]
-		public Item initialItemAround;
+		public List<Item> initialItemsInside = new List<Item> ();
 
 		[HideInInspector]
 		public Character initialCharacterCarrying;
+
 
 		private int id;
 
@@ -34,12 +35,12 @@ namespace Incteractive
 
 				if (item) 
 				{
-					Debug.Log (this + " with " + item +" inside");
 					itemsInside.Add (item);
 					item.itemAround = this;
-					item.initialItemAround = this;
 				}
 			}
+
+			initialItemsInside = new List<Item>(itemsInside);
 		}
 
 		public bool Compare(Item item)
@@ -52,17 +53,31 @@ namespace Incteractive
 			return false;
 		}
 
-		public void SetId(int id)
+		public void SetId(int newId)
 		{
-			this.id = id;
+			id = newId;
+		}
+
+		public int GetId()
+		{
+			return id;
 		}
 
 		public void UpdateItem()
 		{
-			if (itemAround) 
+			Vector3 pos = transform.position;
+
+			for (int i = 0, count = itemsInside.Count; i < count; i++)
 			{
-				transform.position = itemAround.transform.position;
+				Item item = itemsInside[i];
+				item.transform.position = pos;
+				pos += Vector3.up * item.height;
 			}
+			
+//			if (itemAround) 
+//			{
+//				transform.position = itemAround.transform.position;
+//			}
 //			else if(characterCarrying)
 //			{
 //				transform.position = characterCarrying.carryPivot.position;
@@ -71,14 +86,27 @@ namespace Incteractive
 
 		public void Reset()
 		{
-			if (initialItemAround) 
+			for (int i = 0, count = initialItemsInside.Count; i < count; i++) 
 			{
-				initialItemAround.itemsInside.Add (this);
-				transform.position = initialItemAround.transform.position;
-
-				itemAround = initialItemAround;
+				Item item = initialItemsInside [i];	
+				item.itemAround = this;
 			}
+
+			itemsInside = new List<Item>(initialItemsInside);
 		}
+
+        public Vector3 GetDropPosition()
+        {
+            if (itemsInside.Count > 0)
+            {
+                Item item = itemsInside[itemsInside.Count - 1];
+                return item.transform.position + Vector3.up * item.height;
+            }
+            else
+            {
+                return transform.position;
+            }
+        }
 
 		public override string ToString ()
 		{

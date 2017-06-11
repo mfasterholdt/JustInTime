@@ -18,14 +18,34 @@ namespace Incteractive
 			{
 				Item item = transform.GetChild (i).GetComponent<Item> ();	
 
-				if (item) 
-					items.Add (item);
+                if (item)
+                { 
+                    items.Add(item);
+                }
 			}
 		}
 
 		public override string ToString ()
 		{
 			return gameObject.name;
+		}
+
+
+		public Item GetContainer()
+		{
+			Item foundContainer;
+
+			for (int i = 0, count = items.Count; i < count; i++)
+			{
+				Item item = items[i];
+
+				if (item.isContainer && item.itemsInside.Count < 1)
+				{
+					return item;
+				}
+			}
+
+			return null;
 		}
 	}
 }

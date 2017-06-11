@@ -5,15 +5,15 @@ using UnityEngine;
 namespace Incteractive
 {
 	public class Character : MonoBehaviour
-	{		
+	{
 		public GameObject visualsDefault;
 		public GameObject visualsMeet;
 		public GameObject visualsWait;
 		public MeshRenderer[] colorRenderers;
 
-		public Transform carryPivot;
+		public Transform pickupPivot;
 
-		public List<Item> inventory = new List<Item> ();
+		public List<Item> inventory = new List<Item>();
 
 		[HideInInspector]
 		public Location initialLocation, currentLocation, previousLocation;
@@ -41,9 +41,9 @@ namespace Incteractive
 			initialLocation = location;
 			currentLocation = location;
 
-			for (int i = 0, length = colorRenderers.Length; i < length; i++) 
+			for (int i = 0, length = colorRenderers.Length; i < length; i++)
 			{
-				MeshRenderer renderer = colorRenderers [i];
+				MeshRenderer renderer = colorRenderers[i];
 				renderer.material = material;
 			}
 
@@ -51,7 +51,7 @@ namespace Incteractive
 
 			primaryMaterial = material;
 
-			CharacterTimeline timeLine = timeLineTrack.GetComponent<CharacterTimeline> ();
+			CharacterTimeline timeLine = timeLineTrack.GetComponent<CharacterTimeline>();
 			timeLine.Setup(material);
 			this.timeLine = timeLine;
 
@@ -62,13 +62,13 @@ namespace Incteractive
 			currentLocation = initialLocation;
 
 			//TODO, should go to initial inventory instead
-			inventory.Clear ();
+			inventory.Clear();
 		}
 
 		public void Destroy()
 		{
-			Destroy (timeLineTrack.gameObject);	
-			Destroy (this.gameObject);
+			Destroy(timeLineTrack.gameObject);	
+			Destroy(this.gameObject);
 		}
 
 		public void MoveLocation(Location location)
@@ -79,7 +79,7 @@ namespace Incteractive
 
 		public int GetNextActionTime()
 		{
-			if (history.Count > 0) 
+			if (history.Count > 0)
 			{
 //				if (initialLocation.isTimeMachine) 
 //				{
@@ -87,37 +87,37 @@ namespace Incteractive
 //				}
 //				else 
 //				{
-					Action action = history [history.Count - 1];
-					return action.time + action.duration;
+				Action action = history[history.Count - 1];
+				return action.time + action.duration;
 //				}
 			}
 
 			return 0;
 		}
 
-//		public int GetEnterTime()
-//		{
-//			if (initialLocation.isTimeMachine) 
-//			{
-//				for (int i = 0, count = history.Count; i < count; i++)
-//				{
-//					ActionEnter actionEnter = history [i] as ActionEnter;
-//					
-//					if (actionEnter != null)
-//					{
-//						return actionEnter.time;
-//					}
-//				}
-//			}
-//
-//			return 0;
-//		}
+		//		public int GetEnterTime()
+		//		{
+		//			if (initialLocation.isTimeMachine)
+		//			{
+		//				for (int i = 0, count = history.Count; i < count; i++)
+		//				{
+		//					ActionEnter actionEnter = history [i] as ActionEnter;
+		//
+		//					if (actionEnter != null)
+		//					{
+		//						return actionEnter.time;
+		//					}
+		//				}
+		//			}
+		//
+		//			return 0;
+		//		}
 
 		public Action GetLastAction()
 		{
-			if (history.Count > 0) 
+			if (history.Count > 0)
 			{
-				return history [history.Count - 1];
+				return history[history.Count - 1];
 			}
 
 			return null;
@@ -125,9 +125,9 @@ namespace Incteractive
 
 		public int GetLastTime()
 		{
-			if (history.Count > 0) 
+			if (history.Count > 0)
 			{
-				Action action = history [history.Count - 1];
+				Action action = history[history.Count - 1];
 				return action.time + action.duration;
 			}
 
@@ -138,13 +138,13 @@ namespace Incteractive
 		{
 			Location result = initialLocation;
 
-			if (history.Count > 0) 
+			if (history.Count > 0)
 			{
-				for (int i = 0, count = history.Count; i < count; i++) 
+				for (int i = 0, count = history.Count; i < count; i++)
 				{					
-					ActionEnter actionEnter = history [i] as ActionEnter;
+					ActionEnter actionEnter = history[i] as ActionEnter;
 
-					if (actionEnter != null && time > actionEnter.time) 
+					if (actionEnter != null && time > actionEnter.time)
 					{
 						result = actionEnter.toLocation;
 					}
@@ -156,21 +156,21 @@ namespace Incteractive
 
 		public float GetTrackStart(float currentTimeInterpolated)
 		{
-			if (initialLocation.isTimeMachine) 
+			if (initialLocation.isTimeMachine)
 			{					
-				for (int i = 0, count = history.Count; i < count; i++) 
+				for (int i = 0, count = history.Count; i < count; i++)
 				{
-					ActionEnter actionEnter = history [i] as ActionEnter;
+					ActionEnter actionEnter = history[i] as ActionEnter;
 
-					if (actionEnter != null) 
+					if (actionEnter != null)
 					{							
 						return actionEnter.time;
 					}
 				}
 			}
-			else if (history.Count > 0) 
+			else if (history.Count > 0)
 			{
-				return history [0].time;
+				return history[0].time;
 			}
 
 			return 0;
@@ -181,16 +181,16 @@ namespace Incteractive
 			float result = 0f;
 //			bool foundAction = false;
 
-			if (history.Count > 0) 
+			if (history.Count > 0)
 			{
-				for (int i = history.Count - 1; i >= 0; i--) 
+				for (int i = history.Count - 1; i >= 0; i--)
 				{
 					Action action = history[i];
 
-					Location location = GetLocationAtTime (action.time + action.duration);
+					Location location = GetLocationAtTime(action.time + action.duration);
 					ActionEnter actionEnter = action as ActionEnter;
 
-					if (location.isTimeMachine == false || (actionEnter != null && actionEnter.toLocation.isTimeMachine)) 
+					if (location.isTimeMachine == false || (actionEnter != null && actionEnter.toLocation.isTimeMachine))
 					{
 						result = action.time + action.duration;
 //						foundAction = true;
@@ -262,9 +262,9 @@ namespace Incteractive
 		{
 			float result = 0;
 
-			if (currentPlayer) 
+			if (currentPlayer)
 			{
-				if (draggingPlayhead) 
+				if (draggingPlayhead)
 				{
 					//trackEnd = trackStart;
 
@@ -272,44 +272,47 @@ namespace Incteractive
 					{
 						bool foundAction = false;
 
-						for (int i = history.Count - 1; i >= 0; i--) {
-							Action action = history [i];
+						for (int i = history.Count - 1; i >= 0; i--)
+						{
+							Action action = history[i];
 
-							Location location = GetLocationAtTime (action.time);
+							Location location = GetLocationAtTime(action.time);
 
-							if (location.isTimeMachine == false) {
+							if (location.isTimeMachine == false)
+							{
 								result = action.time + action.duration;
 								foundAction = true;
 								break;
 							}
 						}
 
-						if (initialLocation.isTimeMachine && foundAction == false)  
+						if (initialLocation.isTimeMachine && foundAction == false)
 						{
 							result = 0;
 						}
-						else 
+						else
 						{
 							if (currentTimeInterpolated > result)
 								result = currentTimeInterpolated;
 						}
 					}
-					else 
+					else
 					{
-						if (initialLocation.isTimeMachine == false) 
+						if (initialLocation.isTimeMachine == false)
 						{
 							result = currentTimeInterpolated;
-						} 
-						else 
+						}
+						else
 						{
 							bool foundAction = false;
 
-							for (int i = history.Count - 1; i >= 0; i--) {
-								Action action = history [i];
+							for (int i = history.Count - 1; i >= 0; i--)
+							{
+								Action action = history[i];
 
-								Location location = GetLocationAtTime (action.time);
+								Location location = GetLocationAtTime(action.time);
 
-								if (location.isTimeMachine == false) 
+								if (location.isTimeMachine == false)
 								{
 									result = action.time + action.duration;
 									foundAction = true;
@@ -323,43 +326,44 @@ namespace Incteractive
 
 					}
 				}
-				else 
+				else
 				{
 					bool foundAction = false;
 
-					for (int i = history.Count - 1; i >= 0; i--) {
-						Action action = history [i];
+					for (int i = history.Count - 1; i >= 0; i--)
+					{
+						Action action = history[i];
 
-						Location location = GetLocationAtTime (action.time);
+						Location location = GetLocationAtTime(action.time);
 
-						if (location.isTimeMachine == false) 
+						if (location.isTimeMachine == false)
 						{
 							foundAction = true;
 							break;
 						}
 					}
 
-					if (foundAction == false) 
+					if (foundAction == false)
 					{
 						result = 0;
 					}
-					else 
+					else
 					{
 						if (currentTimeInterpolated > result)
 							result = currentTimeInterpolated;
 					}
 				}
 			}
-			else 
+			else
 			{
-				if (history.Count > 0) 
+				if (history.Count > 0)
 				{
-					for (int i = history.Count - 1; i >= 0; i--) 
+					for (int i = history.Count - 1; i >= 0; i--)
 					{
 						Action action = history[i];
 
-						Location location = GetLocationAtTime (action.time);
-						if (location.isTimeMachine == false) 
+						Location location = GetLocationAtTime(action.time);
+						if (location.isTimeMachine == false)
 						{
 							result = action.time + action.duration + 1;
 							break;
@@ -373,21 +377,21 @@ namespace Incteractive
 
 		public void SetVisuals(GameObject nextVisuals)
 		{
-			visualsWait.SetActive (false);
-			visualsDefault.SetActive (false);
-			visualsMeet.SetActive (false);
+			visualsWait.SetActive(false);
+			visualsDefault.SetActive(false);
+			visualsMeet.SetActive(false);
 
-			nextVisuals.SetActive (true);
+			nextVisuals.SetActive(true);
 		}
 
 		public void UpdateCharacter(float time)
 		{
 			//Current action
 			Action action = null;
-			for (int i = 0, count = history.Count; i < count; i++) 
+			for (int i = 0, count = history.Count; i < count; i++)
 			{
 				Action a = history[i];
-				if (time >= a.time) 
+				if (time >= a.time)
 					action = a;
 			}
 				
@@ -397,15 +401,12 @@ namespace Incteractive
 
 			GameObject nextVisuals = visualsDefault;
 
-		
-
-
-			if (action != null) 
+			if (action != null)
 			{
 				float timeFraction = time - action.time;
 				//TODO, mf probably needs more generalised solution here
 
-				if (action is ActionEnter) 
+				if (action is ActionEnter)
 				{
 					ActionEnter actionEnter = action as ActionEnter;	
 					
@@ -414,13 +415,13 @@ namespace Incteractive
 
 					forward = (toPos - fromPos).normalized;
 
-					pos = Vector3.Lerp (fromPos, toPos, timeFraction);
+					pos = Vector3.Lerp(fromPos, toPos, timeFraction);
 				}
-				else if(action is ActionWait) 
+				else if (action is ActionWait)
 				{
 					ActionWait actionWait = action as ActionWait;
 
-					if (actionWait != null) 
+					if (actionWait != null && inventory.Count < 1)
 					{
 						nextVisuals = visualsWait;
 					}
@@ -428,39 +429,50 @@ namespace Incteractive
 			}
 
 			transform.position = pos;
-			transform.rotation = Quaternion.Slerp (transform.rotation, Quaternion.LookRotation (forward), 15f * Time.deltaTime);
+			transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(forward), 15f * Time.deltaTime);
 
-			for (int i = 0, count = inventory.Count; i < count; i++) 
-			{
-				Item item = inventory [i];
-				item.transform.position = carryPivot.position;				
+			Vector3 carryPos = pickupPivot.position;
+
+			for (int i = 0, count = inventory.Count; i < count; i++)
+			{				
+				Item item = inventory[i];
+				item.transform.position = carryPos;
+				carryPos += Vector3.up * item.height;
 			}
 
-			if(action != null && action is ActionPickup)
+			if (action != null)
 			{
 				float timeFraction = time - action.time;
-				ActionPickup actionPickup = action as ActionPickup;
-				actionPickup.item.transform.position = Vector3.Lerp (actionPickup.itemContainer.transform.position, carryPivot.position, timeFraction);
+
+				if (action is ActionPickup)
+				{
+					ActionPickup actionPickup = action as ActionPickup;
+//					Vector3 itemTargetPos = carryPos - Vector3.up * actionPickup.item.height;
+
+					Vector3 towardsPos = pickupPivot.position + Vector3.up * actionPickup.pickupOffset;
+					actionPickup.item.transform.position = Vector3.Lerp(actionPickup.fromPos, towardsPos, timeFraction);
+				}
+				else if (action is ActionDrop)
+				{
+					ActionDrop actionDrop = action as ActionDrop;
+					Vector3 fromPos = pickupPivot.transform.position + Vector3.up * actionDrop.pickupOffset;
+					actionDrop.item.transform.position = Vector3.Lerp(fromPos, actionDrop.towardsPos, timeFraction);
+				}
 			}
 
-			if (this == GameManager.instance.currentPlayer) 
+			if (currentParadoxes.Count > 0)
 			{
-//				Debug.Log(currentLocation);	
-			}
-
-			if(currentParadoxes.Count > 0)
-			{
-				GameObject paradoxVisuals = currentParadoxes [0].visuals;
+				GameObject paradoxVisuals = currentParadoxes[0].visuals;
 
 				if (paradoxVisuals)
 					nextVisuals = paradoxVisuals;
 			}
 
-			SetVisuals (nextVisuals);					
+			SetVisuals(nextVisuals);					
 
 			//Time line
 			float trackStart = GetTrackStart(time);
-			float trackEnd = GetTrackEnd (0, 0f, 0, false, false);
+			float trackEnd = GetTrackEnd(0, 0f, 0, false, false);
 
 			Vector3 localScale = timeLine.bar.localScale;
 			localScale.x = trackEnd - trackStart;
@@ -471,241 +483,252 @@ namespace Incteractive
 			timeLine.bar.localPosition = localPos;
 		}
 
-		public void UpdateCharacterOld(int currentTime, float currentTimeInterpolated, int timeForNextDecision, bool currentPlayer, bool draggingPlayhead)
+		public float GetPickupOffset()
 		{
-			Vector3 forward = Vector3.back;
-
-			//Movement
-			Action a;
-			float timeFraction;
-
-			if (currentTimeInterpolated > currentTime) 
+			if (inventory.Count > 0)
 			{
-				//Backwards in time
-
-				timeFraction = 1 - (currentTimeInterpolated - currentTime);
-				a = GetAction(currentTime);
-			}
-			else 
-			{
-				//Forward in time
-				if (currentTime > 0) 
-				{
-					a = GetAction (currentTime - 1);
-					timeFraction = currentTime - currentTimeInterpolated;
-				}
+				Item item = inventory[inventory.Count - 1];
+				return (item.transform.position.y - pickupPivot.transform.position.y) + item.height;
 			}
 
-			if (this == GameManager.instance.currentPlayer) 
-			{
-				//Debug.Log (a + ","+history.Count+"."+this.gameObject.name);
-
-				if(history.Count > 0)
-				{
-					Debug.Log (history [0].time + ","+currentTime);
-					//Debug.Log(GameManager.instance.currentPlayer);
-				}
-			}
-
-			ActionEnter ae = a as ActionEnter;
-
-			if (ae != null) 
-			{
-//				Debug.Log (ae);
-
-				Vector3 fromPos = ae.fromLocation.transform.position;
-				Vector3 toPos = ae.toLocation.transform.position;
-
-				transform.position = Vector3.Lerp (fromPos, toPos, timeFraction);
-
-				if (currentTime != currentTimeInterpolated) 
-				{				
-					forward = (fromPos - toPos).normalized;
-				}
-			}
-			else 
-			{
-				if (currentTimeInterpolated == 0) 
-				{
-					transform.position = initialLocation.transform.position;
-				}
-			}
-
-
-
-			Vector3 pos = initialLocation.transform.position;
-
-
-			if (history.Count > 0 && false)  
-			{
-				//Movement
-				Location fromLocation = initialLocation;
-
-				for (int i = 0, count = history.Count; i < count; i++) 
-				{
-					Action action = history [i];
-					ActionEnter actionEnter = history [i] as ActionEnter;
-
-					if (currentTimeInterpolated >= action.time + 1) 
-					{	
-						if (actionEnter != null) 
-						{
-							fromLocation = actionEnter.fromLocation;
-							pos = fromLocation.transform.position;
-						}
-					}
-					else 
-					{						
-						if (actionEnter != null) 
-						{
-							float diff = currentTimeInterpolated - actionEnter.time;
-							Vector3 fromPos = fromLocation.transform.position;
-							Vector3 toPos = actionEnter.fromLocation.transform.position;
-							pos = Vector3.Lerp (fromPos, toPos, diff);
-
-							if (currentTime != currentTimeInterpolated) 
-							{				
-								forward = (toPos - fromPos).normalized;
-							}
-						}
-
-						break;
-					}
-				}
-
-				//Rotation
-//				Debug.Log(Mathf.Abs(currentTime-currentTimeInterpolated));
-//				if (currentPlayer == false && currentTime==currentTimeInterpolated) 
-				if (Mathf.Abs(currentTime-currentTimeInterpolated) < 0.05f) 
-				{
-					Location location = GetLocationAtTime (currentTime);
-					Location nextLocation = GetLocationAtTime (currentTime+1);
-
-					if (location != nextLocation)
-					{
-						Vector3 fromPos = location.transform.position;
-						Vector3 toPos = nextLocation.transform.position;
-						forward = (toPos - fromPos).normalized;
-					}
-					else 
-					{
-						forward = Vector3.back;
-					}
-				}
-
-//				if (currentPlayer == false) 
-//				{
-//					ActionEnter actionEnter = GetAction (currentTime + 1) as ActionEnter;
-//
-//					if (actionEnter != null) 
-//					{
-//						Vector3 fromPos = fromLocation.transform.position;
-//						Vector3 toPos = actionEnter.location.transform.position;
-//
-//						if (currentTime != currentTimeInterpolated) 
-//						{				
-//							forward = (toPos - fromPos).normalized;
-//						}
-//					}
-//				}
-			}
-
-			float trackStart = GetTrackStart(currentTimeInterpolated);
-			float trackEnd = GetTrackEnd (currentTime, currentTimeInterpolated, timeForNextDecision, currentPlayer, draggingPlayhead);
-
-			Vector3 localScale = timeLine.bar.localScale;
-			localScale.x = trackEnd - trackStart;
-			timeLine.bar.localScale = localScale;
-
-			Vector3 localPos = timeLine.bar.localPosition;
-			localPos.x = trackStart;
-			timeLine.bar.localPosition = localPos;
-
-//			transform.position = pos;
-
-
-			float timeDiff = Mathf.Abs(currentTime - currentTimeInterpolated);
-
-			if (currentPlayer)
-			{
-				transform.rotation = Quaternion.Slerp (transform.rotation, Quaternion.LookRotation (forward), 14f * Time.deltaTime);
-			}
-			else 
-			{
-				if (timeDiff < 0.5f) 
-				{
-					SetVisuals (visualsDefault);
-
-					if (currentParadoxes.Count > 0) 
-					{
-						Paradox paradox = currentParadoxes [0];
-
-						if (paradox.visuals) 
-						{
-							SetVisuals (paradox.visuals);
-						}
-					} 
-					else 
-					{
-						transform.rotation = Quaternion.Slerp (transform.rotation, Quaternion.LookRotation (forward), 30f * Time.deltaTime);
-
-//						if (draggingPlayhead) {
-//							transform.rotation = Quaternion.LookRotation (forward); 
-//							//transform.forward += forward;
-//						} else {
-//							if (currentPlayer) {
-//								transform.rotation = Quaternion.Slerp (transform.rotation, Quaternion.LookRotation (forward), 14f * Time.deltaTime);
-//							} else {
-//								transform.rotation = Quaternion.Slerp (transform.rotation, Quaternion.LookRotation (forward), 30f * Time.deltaTime);
-//							}
-//							//transform.forward += (forward - transform.forward) * 8f * Time.deltaTime;
-//						}
-					}
-				}
-			}
-
-			if (Mathf.Abs(transform.rotation.eulerAngles.y - 180f) < 5f) 
-			{
-				if (currentTime > 0) 
-				{
-//					visualsWait.SetActive (true);
-//					visualsDefault.SetActive (false);
-				}
-//				Action actionCurrent = GetAction (currentTime);
-//				if (actionCurrent != null) {
-//					ActionWait actionWai = actionCurrent as ActionWait;
-//					if (actionWai != null) {
-//						visualsWait.SetActive (true);
-//						visualsDefault.SetActive (false);
-//					}
-//				}
-//
-//				if (GetLastTime () == currentTime) {
-//					actionCurrent = GetAction (currentTime - 1);
-//					if (actionCurrent != null) {
-//						ActionWait actionWai = actionCurrent as ActionWait;
-//						if (actionWai != null) {
-//							visualsWait.SetActive (true);
-//							visualsDefault.SetActive (false);
-//						}
-//					}
-//				}
-			}
+			return 0;
 		}
+
+//		public void UpdateCharacterOld(int currentTime, float currentTimeInterpolated, int timeForNextDecision, bool currentPlayer, bool draggingPlayhead)
+//		{
+//			Vector3 forward = Vector3.back;
+//
+//			//Movement
+//			Action a;
+//			float timeFraction;
+//
+//			if (currentTimeInterpolated > currentTime)
+//			{
+//				//Backwards in time
+//
+//				timeFraction = 1 - (currentTimeInterpolated - currentTime);
+//				a = GetAction(currentTime);
+//			}
+//			else
+//			{
+//				//Forward in time
+//				if (currentTime > 0)
+//				{
+//					a = GetAction(currentTime - 1);
+//					timeFraction = currentTime - currentTimeInterpolated;
+//				}
+//			}
+//
+//			if (this == GameManager.instance.currentPlayer)
+//			{
+//				//Debug.Log (a + ","+history.Count+"."+this.gameObject.name);
+//
+//				if (history.Count > 0)
+//				{
+//					Debug.Log(history[0].time + "," + currentTime);
+//					//Debug.Log(GameManager.instance.currentPlayer);
+//				}
+//			}
+//
+//			ActionEnter ae = a as ActionEnter;
+//
+//			if (ae != null)
+//			{
+////				Debug.Log (ae);
+//
+//				Vector3 fromPos = ae.fromLocation.transform.position;
+//				Vector3 toPos = ae.toLocation.transform.position;
+//
+//				transform.position = Vector3.Lerp(fromPos, toPos, timeFraction);
+//
+//				if (currentTime != currentTimeInterpolated)
+//				{				
+//					forward = (fromPos - toPos).normalized;
+//				}
+//			}
+//			else
+//			{
+//				if (currentTimeInterpolated == 0)
+//				{
+//					transform.position = initialLocation.transform.position;
+//				}
+//			}
+//
+//
+//
+//			Vector3 pos = initialLocation.transform.position;
+//
+//
+//			if (history.Count > 0 && false)
+//			{
+//				//Movement
+//				Location fromLocation = initialLocation;
+//
+//				for (int i = 0, count = history.Count; i < count; i++)
+//				{
+//					Action action = history[i];
+//					ActionEnter actionEnter = history[i] as ActionEnter;
+//
+//					if (currentTimeInterpolated >= action.time + 1)
+//					{	
+//						if (actionEnter != null)
+//						{
+//							fromLocation = actionEnter.fromLocation;
+//							pos = fromLocation.transform.position;
+//						}
+//					}
+//					else
+//					{						
+//						if (actionEnter != null)
+//						{
+//							float diff = currentTimeInterpolated - actionEnter.time;
+//							Vector3 fromPos = fromLocation.transform.position;
+//							Vector3 toPos = actionEnter.fromLocation.transform.position;
+//							pos = Vector3.Lerp(fromPos, toPos, diff);
+//
+//							if (currentTime != currentTimeInterpolated)
+//							{				
+//								forward = (toPos - fromPos).normalized;
+//							}
+//						}
+//
+//						break;
+//					}
+//				}
+//
+//				//Rotation
+////				Debug.Log(Mathf.Abs(currentTime-currentTimeInterpolated));
+////				if (currentPlayer == false && currentTime==currentTimeInterpolated) 
+//				if (Mathf.Abs(currentTime - currentTimeInterpolated) < 0.05f)
+//				{
+//					Location location = GetLocationAtTime(currentTime);
+//					Location nextLocation = GetLocationAtTime(currentTime + 1);
+//
+//					if (location != nextLocation)
+//					{
+//						Vector3 fromPos = location.transform.position;
+//						Vector3 toPos = nextLocation.transform.position;
+//						forward = (toPos - fromPos).normalized;
+//					}
+//					else
+//					{
+//						forward = Vector3.back;
+//					}
+//				}
+//
+////				if (currentPlayer == false) 
+////				{
+////					ActionEnter actionEnter = GetAction (currentTime + 1) as ActionEnter;
+////
+////					if (actionEnter != null) 
+////					{
+////						Vector3 fromPos = fromLocation.transform.position;
+////						Vector3 toPos = actionEnter.location.transform.position;
+////
+////						if (currentTime != currentTimeInterpolated) 
+////						{				
+////							forward = (toPos - fromPos).normalized;
+////						}
+////					}
+////				}
+//			}
+//
+//			float trackStart = GetTrackStart(currentTimeInterpolated);
+//			float trackEnd = GetTrackEnd(currentTime, currentTimeInterpolated, timeForNextDecision, currentPlayer, draggingPlayhead);
+//
+//			Vector3 localScale = timeLine.bar.localScale;
+//			localScale.x = trackEnd - trackStart;
+//			timeLine.bar.localScale = localScale;
+//
+//			Vector3 localPos = timeLine.bar.localPosition;
+//			localPos.x = trackStart;
+//			timeLine.bar.localPosition = localPos;
+//
+////			transform.position = pos;
+//
+//
+//			float timeDiff = Mathf.Abs(currentTime - currentTimeInterpolated);
+//
+//			if (currentPlayer)
+//			{
+//				transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(forward), 14f * Time.deltaTime);
+//			}
+//			else
+//			{
+//				if (timeDiff < 0.5f)
+//				{
+//					SetVisuals(visualsDefault);
+//
+//					if (currentParadoxes.Count > 0)
+//					{
+//						Paradox paradox = currentParadoxes[0];
+//
+//						if (paradox.visuals)
+//						{
+//							SetVisuals(paradox.visuals);
+//						}
+//					}
+//					else
+//					{
+//						transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(forward), 30f * Time.deltaTime);
+//
+////						if (draggingPlayhead) {
+////							transform.rotation = Quaternion.LookRotation (forward); 
+////							//transform.forward += forward;
+////						} else {
+////							if (currentPlayer) {
+////								transform.rotation = Quaternion.Slerp (transform.rotation, Quaternion.LookRotation (forward), 14f * Time.deltaTime);
+////							} else {
+////								transform.rotation = Quaternion.Slerp (transform.rotation, Quaternion.LookRotation (forward), 30f * Time.deltaTime);
+////							}
+////							//transform.forward += (forward - transform.forward) * 8f * Time.deltaTime;
+////						}
+//					}
+//				}
+//			}
+//
+//			if (Mathf.Abs(transform.rotation.eulerAngles.y - 180f) < 5f)
+//			{
+//				if (currentTime > 0)
+//				{
+////					visualsWait.SetActive (true);
+////					visualsDefault.SetActive (false);
+//				}
+////				Action actionCurrent = GetAction (currentTime);
+////				if (actionCurrent != null) {
+////					ActionWait actionWai = actionCurrent as ActionWait;
+////					if (actionWai != null) {
+////						visualsWait.SetActive (true);
+////						visualsDefault.SetActive (false);
+////					}
+////				}
+////
+////				if (GetLastTime () == currentTime) {
+////					actionCurrent = GetAction (currentTime - 1);
+////					if (actionCurrent != null) {
+////						ActionWait actionWai = actionCurrent as ActionWait;
+////						if (actionWai != null) {
+////							visualsWait.SetActive (true);
+////							visualsDefault.SetActive (false);
+////						}
+////					}
+////				}
+//			}
+//		}
 
 		public Action GetAction(int targetTime)
 		{
-			if(targetTime < 0)
+			if (targetTime < 0)
 				return null;
 			
 			int time = 0;
 
-			for (int i = 0, count = history.Count; i < count; i++) 
+			for (int i = 0, count = history.Count; i < count; i++)
 			{
 				Action action = history[i];
 				time += action.duration;
 
-				if(time > targetTime)
+				if (time > targetTime)
 					return action;
 			}
 
@@ -714,29 +737,29 @@ namespace Incteractive
 
 		public void UndoActions(int currentTime)
 		{	
-			for (int i = history.Count - 1; i >= 0; i--) 
+			for (int i = history.Count - 1; i >= 0; i--)
 			{				
 				Action action = history[i];
 
-				if (action.time >= currentTime) 
+				if (action.time >= currentTime)
 				{
-					history.RemoveAt (i);
+					history.RemoveAt(i);
 				}
-				else 
+				else
 				{
 					break;
 				}
 			}
 
-			timeLine.RemoveSymbols (currentTime);
+			timeLine.RemoveSymbols(currentTime);
 
-			for (int i = observations.Count - 1; i >= 0; i--) 
+			for (int i = observations.Count - 1; i >= 0; i--)
 			{
-				Observation observation = observations [i];
+				Observation observation = observations[i];
 				     
-				if (observation.time >= currentTime) 
+				if (observation.time >= currentTime)
 				{
-					observations.RemoveAt (i);
+					observations.RemoveAt(i);
 				}
 			}
 		}
@@ -752,19 +775,19 @@ namespace Incteractive
 
 		public void CreateCurrentObservation(int currentTime, List<Character> characters)
 		{
-			currentObservation = MakeObservation (currentTime, characters);
+			currentObservation = MakeObservation(currentTime, characters);
 		}
 
 
 		public void CheckObservations(int currentTime)
 		{
-			for (int i = 0, count = observations.Count; i < count; i++) 
+			for (int i = 0, count = observations.Count; i < count; i++)
 			{
-				Observation expectedObservation = observations [i];
+				Observation expectedObservation = observations[i];
 
-				if (expectedObservation.time == currentTime) 
+				if (expectedObservation.time == currentTime)
 				{
-					CompareObservations (currentObservation, expectedObservation);
+					CompareObservations(currentObservation, expectedObservation);
 					break;
 				}				
 			}
@@ -776,52 +799,55 @@ namespace Incteractive
 
 
 			//Expected Characters
-			for (int i = 0, count = expectedObservation.characters.Count; i < count; i++) 
+			for (int i = 0, count = expectedObservation.characters.Count; i < count; i++)
 			{
-				Character character = expectedObservation.characters [i];
+				Character character = expectedObservation.characters[i];
 
-				if (currentCharacters.Remove (character) == false) 
+				if (currentCharacters.Remove(character) == false)
 				{	
-					Paradox paradox = new Paradox (visualsMeet, character);
-					currentParadoxes.Add (paradox);	
+					Paradox paradox = new Paradox(visualsMeet, character);
+					currentParadoxes.Add(paradox);	
 				}			
 			}
 
 			//Unexpected 
-			for (int i = 0, count = currentCharacters.Count; i < count; i++) 
+			for (int i = 0, count = currentCharacters.Count; i < count; i++)
 			{
-				Paradox paradox = new Paradox (visualsMeet, currentCharacters[i]);
-				currentParadoxes.Add (paradox);
+				Paradox paradox = new Paradox(visualsMeet, currentCharacters[i]);
+				currentParadoxes.Add(paradox);
 			}
 		}
 
 		public void AddCurrentObservation()
 		{		
-			observations.Add (currentObservation);
+			observations.Add(currentObservation);
 		}
 
 		private Observation MakeObservation(int currentTime, List<Character> characters)
 		{
-			Location currentLocation = GetLocationAtTime (currentTime);
+			Location currentLocation = GetLocationAtTime(currentTime);
 			
-			List<Character> observedCharacters = new List<Character> ();
+			List<Character> observedCharacters = new List<Character>();
 
 			if (currentLocation.isTimeMachine == false)
 			{
-				for (int i = 0, count = characters.Count; i < count; i++) {
-					Character character = characters [i];
+				for (int i = 0, count = characters.Count; i < count; i++)
+				{
+					Character character = characters[i];
 				
-					if (character != this) {
-						Location location = character.GetLocationAtTime (currentTime);
+					if (character != this)
+					{
+						Location location = character.GetLocationAtTime(currentTime);
 					
-						if (location == currentLocation) {
-							observedCharacters.Add (character);
+						if (location == currentLocation)
+						{
+							observedCharacters.Add(character);
 						}
 					}
 				}
 			}
 
-			return new Observation (currentTime, currentLocation, observedCharacters);
+			return new Observation(currentTime, currentLocation, observedCharacters);
 		}
 	}
 }
