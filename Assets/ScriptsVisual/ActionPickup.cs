@@ -5,19 +5,21 @@ using UnityEngine;
 namespace Incteractive
 {
 	public class ActionPickup : Action
-	{
-		public Item item;
-		public Item itemContainer;
+    {
+        public Item currentItem;
 
-		public Vector3 fromPos;
-		public float pickupOffset;
+        public ItemProfile itemProfile;
+        public ItemProfile itemContainerProfile;
+
+        public Vector3 fromPos;
+        public float pickupOffset;
 
 		public ActionPickup(int time, int duration, Item item, Item itemContainer, float pickupOffset)
 		{
 			this.time = time;
 			this.duration = duration;
-			this.item = item;
-			this.itemContainer = itemContainer;
+            this.itemProfile = item.GetProfile();
+            this.itemContainerProfile = itemContainer.GetProfile();
 
 			this.fromPos = item.transform.position;
 			this.pickupOffset = pickupOffset;
@@ -33,26 +35,38 @@ namespace Incteractive
 
 			for (int i = 0, count = currentLocation.items.Count; i < count; i++)
 			{
-				Item foundContainer = currentLocation.items[i];
+                Item foundContainer = currentLocation.items[i];
 
-				if (foundContainer.Compare(itemContainer))
-				{
-                    Item foundItem = foundContainer.itemsInside[foundContainer.itemsInside.Count - 1];
+                if (foundContainer.GetProfile() == itemContainerProfile)
+				{                   
+                    int itemCount = foundContainer.itemsInside.Count;
 
-					if (foundItem.Compare(item))
-					{
-						character.inventory.Add(foundItem);
+                    if (itemCount > 0)
+                    {                        
+                        Item foundItem = foundContainer.itemsInside[itemCount - 1];
 
-						foundContainer.itemsInside.Remove(foundItem);
+                        if (foundItem.GetProfile() == itemProfile)
+                        {                          
+                            foundContainer.itemsInside.Remove(foundItem);
+                            foundItem.itemAround = null;
 
-						foundItem.itemAround = null;
-						foundItem.characterCarrying = character;
-						//foundItem.transform.position = character.carryPivot.position;
-					}
-				}
+                            character.inventory.Add(foundItem);
+                            foundItem.characterCarrying = character;
+                            currentItem = foundItem;
+
+                            return true;
+                        }
+                        //Item does not match
+                    }
+
+                    //No items in container
+                    break;
+                }
 			}
 
-			return true;
+            //No container found
+
+			return false;
 		}
 	}
 }

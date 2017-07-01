@@ -1,1 +1,17 @@
-//Consider item profile for comparison
+//Fix blend speed when holding down wait key or similar
+
+
+
+//Consider characgter profile for comparison
+//Room profile?
+
+
+//Sort out parenting of objects and characters
+
+
+//Initial items inside on items could be done smarter
+//relationship between items could also be smarter
+//relationship between items and character could also be smarter
+
+
+//Current item on ActionPickup and ActionDrop not good

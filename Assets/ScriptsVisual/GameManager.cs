@@ -25,6 +25,7 @@ namespace Incteractive
 		public Material whiteMaterial;
 
 		public GameObject paradoxParticles;
+        public GameObject paradoxItemParticles;
 
 		[Header("--- Timeline ---")]
 		public GameObject timeline;
@@ -102,7 +103,7 @@ namespace Incteractive
 			currentLevel = level;
 
 			timelineMax = 23;
-			CreatePlayer(level.initialLocation);
+            CreatePlayer(level.initialLocation, level.initialInventory);
 
 			allItems.AddRange(level.GetComponentsInChildren<Item>().ToList());
 
@@ -632,7 +633,6 @@ namespace Incteractive
 
 		void SetParadoxState()
 		{
-			
 			state = State.Paradox;
 		}
 
@@ -655,8 +655,17 @@ namespace Incteractive
 
 						if (paradox != null)
 						{					
-							paradoxParticles.gameObject.SetActive(true);
-							paradoxParticles.transform.position = paradox.character.transform.position;// character.transform.position;
+
+                            if (paradox.character)
+                            {                                
+                                paradoxParticles.gameObject.SetActive(true);
+                                paradoxParticles.transform.position = paradox.character.transform.position;
+                            }
+                            else
+                            {
+                                paradoxItemParticles.gameObject.SetActive(true);
+                                paradoxItemParticles.transform.position = paradox.position;
+                            }
 						}
 					}
 				}
@@ -672,6 +681,7 @@ namespace Incteractive
 					backwardsButton.transform.localScale = Vector3.one;
 
 					paradoxParticles.gameObject.SetActive(false);
+                    paradoxItemParticles.gameObject.SetActive(false);
 
 					SetBackwardsState();
 				}
@@ -891,7 +901,7 @@ namespace Incteractive
 //			for (int i = 0, count = characters.Count; i < count; i++) 
 //				characters[i].Reset();	
 
-			CreatePlayer(timeMachine);
+            CreatePlayer(timeMachine, currentPlayer.inventory);
 
 //			currentTime = 0;
 //			currentTimeInterpolated = 0;
@@ -982,25 +992,41 @@ namespace Incteractive
 		//			}
 		//		}
 
-		private void CreatePlayer(Location location)
+        private void CreatePlayer(Location location, List<Item> inventory)
 		{
-			GameObject newPlayer = Instantiate(characterPrefab, location.transform.position, Quaternion.LookRotation(Vector3.back));
-			currentPlayer = newPlayer.GetComponent<Character>();
+			GameObject newPlayerObj = Instantiate(characterPrefab, location.transform.position, Quaternion.LookRotation(Vector3.back));
+            newPlayerObj.name = "Player " + characters.Count;
 
-			newPlayer.name = "Player " + characters.Count;
+            //Inventory, items travelling through time
+            List<Item> newInventory;
+            if (currentPlayer && location.isTimeMachine)
+            {
+                //Time Traveling 
+                for (int i = 0, count = currentPlayer.inventory.Count; i < count; i++)
+                {
+                    
+                }
+            }           
 
-			GameObject newTimelineTrack = Instantiate(characterTimelinePrefab, timeline.transform.position, timeline.transform.rotation);
-			newTimelineTrack.transform.parent = timeline.transform;
+            //Time line
+            GameObject newTimelineTrack = Instantiate(characterTimelinePrefab, timeline.transform.position, timeline.transform.rotation);
+            newTimelineTrack.transform.parent = timeline.transform;
 
-			Vector3 trackPosLocal = Vector3.zero;
-			trackPosLocal.y = characters.Count * -0.75f;
-			newTimelineTrack.transform.localPosition = trackPosLocal;
+            Vector3 trackPosLocal = Vector3.zero;
+            trackPosLocal.y = characters.Count * -0.75f;
+            newTimelineTrack.transform.localPosition = trackPosLocal;
 
-			Material material = playerMaterials[characters.Count % playerMaterials.Length];
-			currentPlayer.Setup(location, material, newTimelineTrack.transform);
-			playheadRenderer.material = material;
+            //Material
+            Material material = playerMaterials[characters.Count % playerMaterials.Length];
+            playheadRenderer.material = material;
 
-			characters.Add(currentPlayer);		
+            //Setup
+            Character newPlayer = newPlayerObj.GetComponent<Character>();
+            newPlayer.Setup(location, inventory, material, newTimelineTrack.transform);
+
+            currentPlayer = newPlayer;
+
+            characters.Add(newPlayer);		
 		}
 	}
 }

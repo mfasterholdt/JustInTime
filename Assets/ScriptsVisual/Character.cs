@@ -13,8 +13,9 @@ namespace Incteractive
 
 		public Transform pickupPivot;
 
-		public List<Item> inventory = new List<Item>();
-
+        public List<Item> inventory;
+        public List<Item> initialInventory;
+            
 		[HideInInspector]
 		public Location initialLocation, currentLocation, previousLocation;
 
@@ -36,10 +37,10 @@ namespace Incteractive
 		[HideInInspector]
 		public List<Paradox> currentParadoxes = new List<Paradox>();
 
-		public void Setup(Location location, Material material, Transform timeLineTrack)
+        public void Setup(Location location, List<Item> inventory, Material material, Transform timeLineTrack)
 		{
 			initialLocation = location;
-			currentLocation = location;
+			//currentLocation = location;
 
 			for (int i = 0, length = colorRenderers.Length; i < length; i++)
 			{
@@ -55,14 +56,23 @@ namespace Incteractive
 			timeLine.Setup(material);
 			this.timeLine = timeLine;
 
+            initialInventory = new List<Item>(inventory);
+            //this.inventory = new List<Item>(inventory);
+
+            Reset();
 		}
 
 		public void Reset()
 		{
 			currentLocation = initialLocation;
+            			
+            inventory = new List<Item>(initialInventory);
 
-			//TODO, should go to initial inventory instead
-			inventory.Clear();
+            for (int i = 0, count = inventory.Count; i < count; i++)
+            {
+                Item item = inventory[i];
+                item.characterCarrying = this;
+            }
 		}
 
 		public void Destroy()
@@ -448,15 +458,33 @@ namespace Incteractive
 				{
 					ActionPickup actionPickup = action as ActionPickup;
 //					Vector3 itemTargetPos = carryPos - Vector3.up * actionPickup.item.height;
-
-					Vector3 towardsPos = pickupPivot.position + Vector3.up * actionPickup.pickupOffset;
-					actionPickup.item.transform.position = Vector3.Lerp(actionPickup.fromPos, towardsPos, timeFraction);
+                    if (actionPickup.currentItem)
+                    {
+                        Vector3 towardsPos = pickupPivot.position + Vector3.up * actionPickup.pickupOffset;
+//                        Debug.Log(inventory.Count);
+//                        Item item = inventory[inventory.Count - 1];
+//                        item.transform.position = Vector3.Lerp(actionPickup.fromPos, towardsPos, timeFraction);
+//
+                        actionPickup.currentItem.transform.position = Vector3.Lerp(actionPickup.fromPos, towardsPos, timeFraction);
+                    }
+                    else
+                    {
+                        Debug.LogWarning("this should probably be prevented", gameObject);
+                    }
 				}
 				else if (action is ActionDrop)
 				{
 					ActionDrop actionDrop = action as ActionDrop;
-					Vector3 fromPos = pickupPivot.transform.position + Vector3.up * actionDrop.pickupOffset;
-					actionDrop.item.transform.position = Vector3.Lerp(fromPos, actionDrop.towardsPos, timeFraction);
+
+                    if (actionDrop.currentItem)
+                    {
+                        Vector3 fromPos = pickupPivot.transform.position + Vector3.up * actionDrop.pickupOffset;
+                        actionDrop.currentItem.transform.position = Vector3.Lerp(fromPos, actionDrop.towardsPos, timeFraction);
+                    }
+                    else
+                    {
+                        Debug.LogWarning("this should probably be prevented", gameObject);
+                    }
 				}
 			}
 
@@ -795,8 +823,7 @@ namespace Incteractive
 
 		public void CompareObservations(Observation currentObservation, Observation expectedObservation)
 		{
-			List<Character> currentCharacters = currentObservation.characters;
-
+            List<Character> currentCharacters = new List<Character>(currentObservation.characters);
 
 			//Expected Characters
 			for (int i = 0, count = expectedObservation.characters.Count; i < count; i++)
@@ -810,13 +837,42 @@ namespace Incteractive
 				}			
 			}
 
-			//Unexpected 
+			//Unexpected Characters
 			for (int i = 0, count = currentCharacters.Count; i < count; i++)
 			{
 				Paradox paradox = new Paradox(visualsMeet, currentCharacters[i]);
 				currentParadoxes.Add(paradox);
 			}
+
+            //Expected Items
+            List<ItemProfile> currentItemProfiles = new List<ItemProfile>(currentObservation.itemProfiles);
+
+            for (int i = 0, count = expectedObservation.itemProfiles.Count; i < count; i++)
+            {
+                ItemProfile itemProfile = expectedObservation.itemProfiles[i];
+
+//                for (int s = currentItemProfiles.Count - 1; s >= 0; s--) 
+//                {
+//                    if (currentItemProfiles[s] == itemProfile)
+//                    {                        
+//                        break;
+//                    }
+//
+//                    if (s == 0)
+//                    {
+//                        Paradox paradox = new Paradox(visualsMeet, null, null);
+//                        currentParadoxes.Add(paradox);
+//                    }
+//                }
+
+                if (currentItemProfiles.Remove(itemProfile) == false)
+                {
+                    Paradox paradox = new Paradox(visualsMeet, itemProfile.position);
+                    currentParadoxes.Add(paradox);
+                }
+            }
 		}
+
 
 		public void AddCurrentObservation()
 		{		

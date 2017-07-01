@@ -10,8 +10,14 @@ namespace Incteractive
 
 		[HideInInspector]
 		public Location[] locations;
+
+        [HideInInspector]
 		public Location[] timeMachineConnections;
 
+        [HideInInspector]
+        public List<Item> initialInventory;
+
+        //***TODO, post process
 		void Awake () 
 		{
 			//Locations
@@ -44,6 +50,16 @@ namespace Incteractive
 			{
 				items [i].SetId(i);	
 			}
+
+            //Initial Inventory
+            for (int i = 0, length = transform.childCount; i < length; i++)
+            {
+                Transform t = transform.GetChild(i);
+                Item item = t.GetComponent<Item>();
+
+                if (item)
+                    initialInventory.Add(item);
+            }
 		}
 	}
 }

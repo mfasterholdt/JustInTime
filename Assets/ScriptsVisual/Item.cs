@@ -8,6 +8,7 @@ namespace Incteractive
 	{
 		public bool isMovable;
 		public bool isContainer;
+        public bool showContent = true;
 		public float height = 0.8f;
 
 		//[HideInInspector]
@@ -24,7 +25,6 @@ namespace Incteractive
 		[HideInInspector]
 		public Character initialCharacterCarrying;
 
-
 		private int id;
 
 		void Awake()
@@ -33,7 +33,7 @@ namespace Incteractive
 			{
 				Item item = transform.GetChild (i).GetComponent<Item> ();	
 
-				if (item) 
+                if (item && item.gameObject.activeInHierarchy) 
 				{
 					itemsInside.Add (item);
 					item.itemAround = this;
@@ -43,25 +43,54 @@ namespace Incteractive
 			initialItemsInside = new List<Item>(itemsInside);
 		}
 
-		public bool Compare(Item item)
-		{
-			if (this.id == item.id) 
-			{
-				return true;
-			}
+        public ItemProfile GetProfile()
+        {
+            ItemProfile profile =  new ItemProfile();
 
-			return false;
-		}
+            profile.id = id;
+
+            if (showContent)
+            {
+                profile.showContent = true;
+
+                ItemProfile[] itemsInsideProfiles = new ItemProfile[itemsInside.Count];
+
+                for (int i = 0, count = itemsInside.Count; i < count; i++)
+                {
+                    itemsInsideProfiles[i] = itemsInside[i].GetProfile();   
+                }
+
+                profile.itemsInsideProfiles = itemsInsideProfiles;
+            }
+            else
+            {
+                profile.showContent = false;
+            }
+
+            profile.position = transform.position;
+
+            return profile;
+        }
+
+//		public bool Compare(Item item)
+//		{
+//			if (this.id == item.id) 
+//			{
+//				return true;
+//			}
+//
+//			return false;
+//		}
 
 		public void SetId(int newId)
 		{
 			id = newId;
 		}
-
-		public int GetId()
-		{
-			return id;
-		}
+//
+//		public int GetId()
+//		{
+//			return id;
+//		}
 
 		public void UpdateItem()
 		{

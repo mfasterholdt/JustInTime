@@ -6,8 +6,9 @@ namespace Incteractive
 {
 	public class ActionDrop : Action 
 	{
-		public Item item; 
-		public Item itemContainer;
+        public Item currentItem;
+		public ItemProfile itemProfile; 
+        public ItemProfile itemContainerProfile;
 
 		public float pickupOffset;
 		public Vector3 towardsPos;
@@ -16,8 +17,8 @@ namespace Incteractive
 		{
 			this.time = time;
 			this.duration = duration;
-			this.item = item;
-			this.itemContainer = itemContainer;
+            this.itemProfile = item.GetProfile();
+            this.itemContainerProfile = itemContainer.GetProfile();
 
 			pickupOffset = item.transform.position.y - item.characterCarrying.pickupPivot.position.y;
             towardsPos = itemContainer.GetDropPosition();
@@ -26,20 +27,18 @@ namespace Incteractive
 		public override bool Perform (Character character, int currentTime)
 		{
 			Location currentLocation = character.currentLocation;
-
-
+           
 			for (int i = 0, count = currentLocation.items.Count; i < count; i++) 
 			{
-				Item foundContainer = currentLocation.items[i];
+                Item foundContainer = currentLocation.items[i];
 
-				if(foundContainer.Compare(itemContainer) && character.inventory.Count > 0)
+                if(foundContainer.GetProfile() == itemContainerProfile && character.inventory.Count > 0)
 				{
 					Item foundItem = character.inventory [character.inventory.Count -1];
 					//Item foundItem = foundContainer.itemsInside[0];
 
-					if (foundItem.Compare (item)) 
-					{
-						
+                    if (foundItem.GetProfile() == itemProfile) 
+					{						
 						character.inventory.Remove(foundItem);
 
 						foundContainer.itemsInside.Add (foundItem);
@@ -47,6 +46,7 @@ namespace Incteractive
 						foundItem.itemAround = foundContainer;
 						foundItem.characterCarrying = null;
 
+                        currentItem = foundItem;
 						//foundItem.transform.position = character.carryPivot.position;
 					}
 				}
