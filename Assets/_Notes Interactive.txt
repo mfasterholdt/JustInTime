@@ -15,3 +15,9 @@
 
 
 //Current item on ActionPickup and ActionDrop not good
+
+
+//Actions longer than 1 tick
+//Undo for these
+
+//Shortcuts Z and Space

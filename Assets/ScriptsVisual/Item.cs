@@ -43,6 +43,16 @@ namespace Incteractive
 			initialItemsInside = new List<Item>(itemsInside);
 		}
 
+        public Item Copy()
+        {
+            GameObject obj = Instantiate(gameObject);
+
+            Item newItem = obj.GetComponent<Item>();
+            newItem.SetId(id);
+
+            return newItem;
+        }
+
         public ItemProfile GetProfile()
         {
             ItemProfile profile =  new ItemProfile();

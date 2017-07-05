@@ -73,8 +73,7 @@ namespace Incteractive
 		private bool waitForMouseRelease;
 
 		public int timelineMax;
-		public bool timeSynced;
-
+		
 		public float scrubWaitInterpolateSpeed;
 
 		public static GameManager instance;
@@ -287,7 +286,7 @@ namespace Incteractive
 
 		void ScrubWaitState()
 		{
-			InterpolateTime(scrubWaitInterpolateSpeed);
+            bool timeSynced = InterpolateTime(scrubWaitInterpolateSpeed);
 
 //			int lastTime = currentPlayer.GetLastTime ();
 
@@ -323,7 +322,7 @@ namespace Incteractive
 
 		void ForwardState()
 		{			
-			InterpolateTime();
+            bool timeSynced = InterpolateTime();
 
 			if (timeSynced)
 			{
@@ -345,7 +344,7 @@ namespace Incteractive
 
 		void BackwardsState()
 		{
-			InterpolateTime();
+            bool timeSynced = InterpolateTime();
 
 			if (timeSynced)
 			{
@@ -446,7 +445,7 @@ namespace Incteractive
 
 		void ActionState()
 		{
-			InterpolateTime();
+            bool timeSynced = InterpolateTime();
 
 			if (timeSynced)
 			{
@@ -638,7 +637,7 @@ namespace Incteractive
 
 		void ParadoxState()
 		{
-			InterpolateTime();
+            bool timeSynced = InterpolateTime();
 
 			backwardsButton.transform.localScale = Vector3.one * (1.5f + 0.3f * Mathf.Sin(Time.time * 5f));
 
@@ -694,8 +693,6 @@ namespace Incteractive
 
 			bool backwardsButtonDown = MouseDown(backwardsButton.collider) || Input.GetKey(KeyCode.Z);
 			backwardsButton.Toggle(backwardsButtonDown);
-
-			timeSynced = currentTimeInterpolated == currentTime; 
 
 			switch (state)
 			{
@@ -879,19 +876,21 @@ namespace Incteractive
 			return null;
 		}
 
-		void InterpolateTime(float speed = 2f)
+		bool InterpolateTime(float speed = 2f)
 		{
 			float diff = currentTime - currentTimeInterpolated;
 			float addTime = Mathf.Sign(diff) * speed * Time.deltaTime; 
 
-			if (Mathf.Abs(addTime) < Mathf.Abs(diff))
-			{
-				currentTimeInterpolated += addTime;				
-			}
-			else
-			{
-				currentTimeInterpolated = currentTime;
-			}
+            if (Mathf.Abs(addTime) > Mathf.Abs(diff))
+            {
+                currentTimeInterpolated = currentTime;
+                return true;
+            }
+            else
+            {
+                currentTimeInterpolated += addTime;             
+                return false;
+            }
 		}
 
 		void TimeTravel()
@@ -901,7 +900,19 @@ namespace Incteractive
 //			for (int i = 0, count = characters.Count; i < count; i++) 
 //				characters[i].Reset();	
 
-            CreatePlayer(timeMachine, currentPlayer.inventory);
+            //Inventory, items travelling through time
+            List<Item> newInventory= new List<Item>();
+            for (int i = 0, count = currentPlayer.inventory.Count; i < count; i++)
+            {
+
+                Item newItem = currentPlayer.inventory[i].Copy();
+                newInventory.Add(newItem);
+
+//                Debug.Log(i +" ,"+(newItem.GetProfile() == currentPlayer.inventory[i].GetProfile()));
+                //Debug.Log(newItem.GetProfile()+" == "+currentPlayer.inventory[i].GetProfile());
+            }
+
+            CreatePlayer(timeMachine, newInventory);
 
 //			currentTime = 0;
 //			currentTimeInterpolated = 0;
@@ -995,18 +1006,7 @@ namespace Incteractive
         private void CreatePlayer(Location location, List<Item> inventory)
 		{
 			GameObject newPlayerObj = Instantiate(characterPrefab, location.transform.position, Quaternion.LookRotation(Vector3.back));
-            newPlayerObj.name = "Player " + characters.Count;
-
-            //Inventory, items travelling through time
-            List<Item> newInventory;
-            if (currentPlayer && location.isTimeMachine)
-            {
-                //Time Traveling 
-                for (int i = 0, count = currentPlayer.inventory.Count; i < count; i++)
-                {
-                    
-                }
-            }           
+            newPlayerObj.name = "Player " + characters.Count;        
 
             //Time line
             GameObject newTimelineTrack = Instantiate(characterTimelinePrefab, timeline.transform.position, timeline.transform.rotation);
