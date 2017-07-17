@@ -282,7 +282,7 @@ public class ItemTimeline
 
 	public void Draw(int currentTime, Vector2 posGUI)
 	{
-		return;
+		//return;
 
 		int characterCount = characters.Count;
 

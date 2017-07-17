@@ -47,6 +47,14 @@ namespace Incteractive
 
             return true;
         }
+        
+        public bool CompareSurface(ItemProfile profile)
+        {
+            if (profile == null || profile.id != id || profile.showContent != showContent)
+                return false;
+
+            return true;           
+        }
 
         public override string ToString()
         {

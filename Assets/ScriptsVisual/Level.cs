@@ -48,7 +48,7 @@ namespace Incteractive
 
 			for (int i = 0, length = items.Length; i < length; i++) 
 			{
-				items [i].SetId(i);	
+                items[i].id = i;
 			}
 
             //Initial Inventory

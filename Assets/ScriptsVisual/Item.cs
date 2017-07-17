@@ -25,7 +25,7 @@ namespace Incteractive
 		[HideInInspector]
 		public Character initialCharacterCarrying;
 
-		private int id;
+		public int id;
 
 		void Awake()
 		{
@@ -48,18 +48,18 @@ namespace Incteractive
             GameObject obj = Instantiate(gameObject);
 
             Item newItem = obj.GetComponent<Item>();
-            newItem.SetId(id);
+            newItem.id = id;
 
             return newItem;
         }
 
-        public ItemProfile GetProfile()
+        public ItemProfile GetProfile(bool includeContent = true)
         {
             ItemProfile profile =  new ItemProfile();
 
             profile.id = id;
 
-            if (showContent)
+            if (showContent && includeContent)
             {
                 profile.showContent = true;
 
@@ -67,7 +67,7 @@ namespace Incteractive
 
                 for (int i = 0, count = itemsInside.Count; i < count; i++)
                 {
-                    itemsInsideProfiles[i] = itemsInside[i].GetProfile();   
+                    itemsInsideProfiles[i] = itemsInside[i].GetProfile(includeContent);   
                 }
 
                 profile.itemsInsideProfiles = itemsInsideProfiles;
@@ -92,10 +92,10 @@ namespace Incteractive
 //			return false;
 //		}
 
-		public void SetId(int newId)
-		{
-			id = newId;
-		}
+//		public void SetId(int newId)
+//		{
+//			id = newId;
+//		}
 //
 //		public int GetId()
 //		{

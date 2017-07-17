@@ -1,13 +1,7 @@
-//Fix blend speed when holding down wait key or similar
 
 
-
-//Consider characgter profile for comparison
+//Consider character profile for comparison
 //Room profile?
-
-
-//Sort out parenting of objects and characters
-
 
 //Initial items inside on items could be done smarter
 //relationship between items could also be smarter
@@ -17,7 +11,31 @@
 //Current item on ActionPickup and ActionDrop not good
 
 
+//Item timeline
+//Interpolate item position from within items
+
 //Actions longer than 1 tick
 //Undo for these
 
-//Shortcuts Z and Space
+//Check observations in update all the time
+//Maybe remove check from action state
+
+//Experiment with warnings
+//Run all actions to the end and collect paradoxes
+//Only act on paradoxes when time is past it
+//Otherwise paradoxes are just potential and collected for warnings
+
+//Remember crossing is currently disabled
+
+
+//Scrub should probably not cause paradoxes only foreshadow and inform
+//Show missing objects as showdows
+//Show unexpectects as warnings
+
+
+//----//Pretty things
+//Rotat characters based on playhead instead of absolute time
+//Fix blend speed when holding down wait key or similar
+//Sort out parenting of objects and characters
+//Timeline blink when time travelling
+//Timeline not strictly following playhead

@@ -17,14 +17,14 @@ namespace Incteractive
 		{
 			this.time = time;
 			this.duration = duration;
-            this.itemProfile = item.GetProfile();
-            this.itemContainerProfile = itemContainer.GetProfile();
+            this.itemProfile = item.GetProfile(false);
+            this.itemContainerProfile = itemContainer.GetProfile(false);
 
 			pickupOffset = item.transform.position.y - item.characterCarrying.pickupPivot.position.y;
             towardsPos = itemContainer.GetDropPosition();
 		}
 
-		public override bool Perform (Character character, int currentTime)
+		public override bool Perform (Character character)
 		{
 			Location currentLocation = character.currentLocation;
            
@@ -32,12 +32,12 @@ namespace Incteractive
 			{
                 Item foundContainer = currentLocation.items[i];
 
-                if(foundContainer.GetProfile() == itemContainerProfile && character.inventory.Count > 0)
+                if(foundContainer.GetProfile(false) == itemContainerProfile && character.inventory.Count > 0)
 				{
 					Item foundItem = character.inventory [character.inventory.Count -1];
 					//Item foundItem = foundContainer.itemsInside[0];
 
-                    if (foundItem.GetProfile() == itemProfile) 
+                    if (foundItem.GetProfile(false) == itemProfile) 
 					{						
 						character.inventory.Remove(foundItem);
 

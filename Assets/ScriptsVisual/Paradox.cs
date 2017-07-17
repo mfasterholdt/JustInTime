@@ -10,15 +10,18 @@ namespace Incteractive
 
 		public Character character;
 		public Vector3 position;
+        public int time;
 
-        public Paradox(GameObject visuals, Character character)
+        public Paradox(int time, GameObject visuals, Character character)
 		{		
+            this.time = time;
 			this.visuals = visuals;
 			this.character = character;			
 		}
 
-        public Paradox(GameObject visuals, Vector3 position)
+        public Paradox(int time, GameObject visuals, Vector3 position)
         {       
+            this.time = time;
             this.visuals = visuals;
             this.position = position;
         }

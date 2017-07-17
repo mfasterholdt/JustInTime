@@ -17,10 +17,9 @@ namespace Incteractive
 			this.toLocation = toLocation;
 		}
 
-		public override bool Perform (Character character, int currentTime)	
+		public override bool Perform (Character character)	
 		{
-			character.MoveLocation (toLocation);
-
+            character.currentLocation = toLocation;//character.MoveLocation (toLocation);
 			return true;
 		}
 

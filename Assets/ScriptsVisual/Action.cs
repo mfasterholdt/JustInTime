@@ -9,7 +9,7 @@ namespace Incteractive
 		public int time;
 		public int duration = 1;
 
-		public virtual bool Perform(Character character, int currentTime)
+		public virtual bool Perform(Character character)
 		{
 			return true;
 		}

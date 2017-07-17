@@ -30,7 +30,6 @@ namespace Incteractive
 			return gameObject.name;
 		}
 
-
 		public Item GetContainer()
 		{
 			Item foundContainer;

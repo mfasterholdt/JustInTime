@@ -16,7 +16,7 @@ namespace Incteractive
         public List<Item> inventory;
         public List<Item> initialInventory;
             
-		[HideInInspector]
+		//[HideInInspector]
 		public Location initialLocation, currentLocation, previousLocation;
 
 		public List<Action> history = new List<Action>();
@@ -36,6 +36,7 @@ namespace Incteractive
 
 		[HideInInspector]
 		public List<Paradox> currentParadoxes = new List<Paradox>();
+        public List<GameObject> currentWarnings = new List<GameObject>();
 
         public void Setup(Location location, List<Item> inventory, Material material, Transform timeLineTrack)
 		{
@@ -65,7 +66,8 @@ namespace Incteractive
 		public void Reset()
 		{
 			currentLocation = initialLocation;
-            			
+            previousLocation = initialLocation;
+
             inventory = new List<Item>(initialInventory);
 
             for (int i = 0, count = inventory.Count; i < count; i++)
@@ -73,6 +75,13 @@ namespace Incteractive
                 Item item = inventory[i];
                 item.characterCarrying = this;
             }
+
+            for (int i = 0, count = currentWarnings.Count; i < count; i++)
+            {
+                Destroy(currentWarnings[i]);
+            }
+
+            currentParadoxes.Clear();
 		}
 
 		public void Destroy()
@@ -81,11 +90,11 @@ namespace Incteractive
 			Destroy(this.gameObject);
 		}
 
-		public void MoveLocation(Location location)
-		{
-			previousLocation = currentLocation;
-			currentLocation = location;
-		}
+//		public void MoveLocation(Location location)
+//		{
+//			previousLocation = currentLocation;
+//			currentLocation = location;
+//		}
 
 		public int GetNextActionTime()
 		{
@@ -396,6 +405,21 @@ namespace Incteractive
 
 		public void UpdateCharacter(float time)
 		{
+//            if (currentParadoxes.Count > 0)
+//            {
+//                Paradox paradox = currentParadoxes[0];
+//
+//                //GameObject paradoxVisuals = paradox.visuals;
+//                //if (paradoxVisuals)                    
+//                //   SetVisuals(paradoxVisuals);                 
+//                //return;
+//
+//                if (time >= paradox.time)
+//                {
+//                    return;
+//                }
+//            }
+            
 			//Current action
 			Action action = null;
 			for (int i = 0, count = history.Count; i < count; i++)
@@ -456,39 +480,47 @@ namespace Incteractive
 
 				if (action is ActionPickup)
 				{
-					ActionPickup actionPickup = action as ActionPickup;
-//					Vector3 itemTargetPos = carryPos - Vector3.up * actionPickup.item.height;
-                    if (actionPickup.currentItem)
+                    if (timeFraction > 0f)
                     {
-                        Vector3 towardsPos = pickupPivot.position + Vector3.up * actionPickup.pickupOffset;
+                        ActionPickup actionPickup = action as ActionPickup;
+//					Vector3 itemTargetPos = carryPos - Vector3.up * actionPickup.item.height;
+                        if(inventory.Count > 0)
+                        {
+                            Item itemPickup = inventory[inventory.Count - 1];
+                        //Debug.Log(item == actionPickup.currentItem);
+
+                        //if (actionPickup.currentItem)
+                        //{
+                            Vector3 towardsPos = pickupPivot.position + Vector3.up * actionPickup.pickupOffset;
 //                        Debug.Log(inventory.Count);
 //                        Item item = inventory[inventory.Count - 1];
 //                        item.transform.position = Vector3.Lerp(actionPickup.fromPos, towardsPos, timeFraction);
 //
-                        actionPickup.currentItem.transform.position = Vector3.Lerp(actionPickup.fromPos, towardsPos, timeFraction);
-                    }
-                    else
-                    {
-                        Debug.LogWarning("this should probably be prevented", gameObject);
+                            itemPickup.transform.position = Vector3.Lerp(actionPickup.fromPos, towardsPos, timeFraction);
+//                        }
+//                        else
+//                        {
+//                            Debug.LogWarning("this should probably be prevented", gameObject);
+//                        }
+                        }
                     }
 				}
 				else if (action is ActionDrop)
 				{
-					ActionDrop actionDrop = action as ActionDrop;
+                    if (timeFraction > 0f)
+                    {
+                        ActionDrop actionDrop = action as ActionDrop;
 
-                    if (actionDrop.currentItem)
-                    {
-                        Vector3 fromPos = pickupPivot.transform.position + Vector3.up * actionDrop.pickupOffset;
-                        actionDrop.currentItem.transform.position = Vector3.Lerp(fromPos, actionDrop.towardsPos, timeFraction);
-                    }
-                    else
-                    {
-                        Debug.LogWarning("this should probably be prevented", gameObject);
+                        if (actionDrop.currentItem)
+                        {
+                            Vector3 fromPos = pickupPivot.transform.position + Vector3.up * actionDrop.pickupOffset;
+                            actionDrop.currentItem.transform.position = Vector3.Lerp(fromPos, actionDrop.towardsPos, timeFraction);
+                        }
                     }
 				}
 			}
-
-			if (currentParadoxes.Count > 0)
+                
+            if (currentParadoxes.Count > 0)
 			{
 				GameObject paradoxVisuals = currentParadoxes[0].visuals;
 
@@ -832,7 +864,7 @@ namespace Incteractive
 
 				if (currentCharacters.Remove(character) == false)
 				{	
-					Paradox paradox = new Paradox(visualsMeet, character);
+                    Paradox paradox = new Paradox(currentObservation.time, visualsMeet, character);
 					currentParadoxes.Add(paradox);	
 				}			
 			}
@@ -840,7 +872,7 @@ namespace Incteractive
 			//Unexpected Characters
 			for (int i = 0, count = currentCharacters.Count; i < count; i++)
 			{
-				Paradox paradox = new Paradox(visualsMeet, currentCharacters[i]);
+                Paradox paradox = new Paradox(currentObservation.time, visualsMeet, currentCharacters[i]);
 				currentParadoxes.Add(paradox);
 			}
 
@@ -867,7 +899,7 @@ namespace Incteractive
 
                 if (currentItemProfiles.Remove(itemProfile) == false)
                 {
-                    Paradox paradox = new Paradox(visualsMeet, itemProfile.position);
+                    Paradox paradox = new Paradox(currentObservation.time, visualsMeet, itemProfile.position);
                     currentParadoxes.Add(paradox);
                 }
             }
