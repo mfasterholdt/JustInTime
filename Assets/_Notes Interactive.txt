@@ -1,14 +1,11 @@
 
 
-//Consider character profile for comparison
-//Room profile?
+//SORT OUT YOUR REPOSITORY
 
-//Initial items inside on items could be done smarter
-//relationship between items could also be smarter
-//relationship between items and character could also be smarter
+//time travel right into the future to get paradox error
 
 
-//Current item on ActionPickup and ActionDrop not good
+//Paradox for unexpected items
 
 
 //Item timeline
@@ -17,25 +14,39 @@
 //Actions longer than 1 tick
 //Undo for these
 
-//Check observations in update all the time
-//Maybe remove check from action state
+//Remember symbols and experiment
 
-//Experiment with warnings
-//Run all actions to the end and collect paradoxes
-//Only act on paradoxes when time is past it
-//Otherwise paradoxes are just potential and collected for warnings
-
-//Remember crossing is currently disabled
+//Experiment with time line glitchiness
 
 
-//Scrub should probably not cause paradoxes only foreshadow and inform
-//Show missing objects as showdows
-//Show unexpectects as warnings
+//Nested items are going to require more work
+//-observations for example, probably others
 
+//----//Needed things
+//Transition from time travel directly to paradox state
 
 //----//Pretty things
 //Rotat characters based on playhead instead of absolute time
 //Fix blend speed when holding down wait key or similar
-//Sort out parenting of objects and characters
 //Timeline blink when time travelling
 //Timeline not strictly following playhead
+//Offset carried items so they look seperate even with two of the same
+//Items being picked up flicker for one frame
+//Character flicker for one frame when undoing out of paradox state, probably rotation chaos
+//Paradox meeting while carrying item
+
+//---//Tidy things
+//Parenting of objects
+//Remove GetLocationAtTime() from character
+
+//----//Design considerations
+//Only carry one item? swap instead of pick up multiples
+
+//----//Tech considerations
+//Consider character profile for comparison
+//Room profile?
+//Initial items inside on items could be done smarter
+//relationship between items could also be smarter
+//relationship between items and character could also be smarter
+//Current item on ActionPickup and ActionDrop not good
+//Maybe remove perform actions from SetActionState?

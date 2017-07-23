@@ -9,6 +9,8 @@ namespace Incteractive
 		public GameObject visualsDefault;
 		public GameObject visualsMeet;
 		public GameObject visualsWait;
+        public GameObject visualsWarning;
+
 		public MeshRenderer[] colorRenderers;
 
 		public Transform pickupPivot;
@@ -33,10 +35,10 @@ namespace Incteractive
 		public Material primaryMaterial;
 
 		private Observation currentObservation;
+        private GameObject currentVisuals;
 
 		[HideInInspector]
 		public List<Paradox> currentParadoxes = new List<Paradox>();
-        public List<GameObject> currentWarnings = new List<GameObject>();
 
         public void Setup(Location location, List<Item> inventory, Material material, Transform timeLineTrack)
 		{
@@ -60,6 +62,14 @@ namespace Incteractive
             initialInventory = new List<Item>(inventory);
             //this.inventory = new List<Item>(inventory);
 
+//            ParticleSystem[] warningParticles = visualsWarning.GetComponentsInChildren<ParticleSystem>();
+//            for (int i = 0, length = warningParticles.Length; i < length; i++)
+//            {
+//                warningParticles[i].startColor = material.color;
+//            }
+                
+            currentVisuals = visualsDefault;
+
             Reset();
 		}
 
@@ -75,12 +85,7 @@ namespace Incteractive
                 Item item = inventory[i];
                 item.characterCarrying = this;
             }
-
-            for (int i = 0, count = currentWarnings.Count; i < count; i++)
-            {
-                Destroy(currentWarnings[i]);
-            }
-
+                
             currentParadoxes.Clear();
 		}
 
@@ -392,19 +397,25 @@ namespace Incteractive
 			}
 
 			return result;
-		}
+		
+        }
 
 		public void SetVisuals(GameObject nextVisuals)
 		{
-			visualsWait.SetActive(false);
-			visualsDefault.SetActive(false);
-			visualsMeet.SetActive(false);
+            if (nextVisuals != currentVisuals)
+            {
+                currentVisuals.SetActive(false);
+                nextVisuals.SetActive(true);
 
-			nextVisuals.SetActive(true);
+                currentVisuals = nextVisuals;
+            }
 		}
 
 		public void UpdateCharacter(float time)
 		{
+            float trackStart = GetTrackStart(time);
+            float trackEnd = GetTrackEnd(0, 0f, 0, false, false);
+
 //            if (currentParadoxes.Count > 0)
 //            {
 //                Paradox paradox = currentParadoxes[0];
@@ -425,13 +436,16 @@ namespace Incteractive
 			for (int i = 0, count = history.Count; i < count; i++)
 			{
 				Action a = history[i];
-				if (time >= a.time)
+                //TODO, used to foreshadow move direction, maybe handle paradox visualsation differently
+                if (time > a.time || (time == a.time && currentParadoxes.Count < 1))
+                {
 					action = a;
+                }                
 			}
 				
 			//Interpolate state
 			Vector3 pos = currentLocation.transform.position;
-			Vector3 forward = Vector3.back;
+            Vector3 lookDirection = Vector3.back;
 
 			GameObject nextVisuals = visualsDefault;
 
@@ -447,7 +461,7 @@ namespace Incteractive
 					Vector3 fromPos = actionEnter.fromLocation.transform.position;
 					Vector3 toPos = actionEnter.toLocation.transform.position;
 
-					forward = (toPos - fromPos).normalized;
+					lookDirection = (toPos - fromPos).normalized;
 
 					pos = Vector3.Lerp(fromPos, toPos, timeFraction);
 				}
@@ -462,8 +476,14 @@ namespace Incteractive
 				}
 			}
 
-			transform.position = pos;
-			transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(forward), 15f * Time.deltaTime);
+            if (time > trackEnd)
+            {
+                nextVisuals = visualsWait; //visualsWarning
+                lookDirection = Vector3.back;
+            }
+
+			transform.position = pos;			
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(lookDirection), 15f * Time.deltaTime);
 
 			Vector3 carryPos = pickupPivot.position;
 
@@ -471,7 +491,7 @@ namespace Incteractive
 			{				
 				Item item = inventory[i];
 				item.transform.position = carryPos;
-				carryPos += Vector3.up * item.height;
+                carryPos += Vector3.up * item.height;
 			}
 
 			if (action != null)
@@ -495,7 +515,6 @@ namespace Incteractive
 //                        Debug.Log(inventory.Count);
 //                        Item item = inventory[inventory.Count - 1];
 //                        item.transform.position = Vector3.Lerp(actionPickup.fromPos, towardsPos, timeFraction);
-//
                             itemPickup.transform.position = Vector3.Lerp(actionPickup.fromPos, towardsPos, timeFraction);
 //                        }
 //                        else
@@ -527,20 +546,17 @@ namespace Incteractive
 				if (paradoxVisuals)
 					nextVisuals = paradoxVisuals;
 			}
+                
+            //Time line
+            Vector3 localScale = timeLine.bar.localScale;
+            localScale.x = trackEnd - trackStart;
+            timeLine.bar.localScale = localScale;
 
-			SetVisuals(nextVisuals);					
+            Vector3 localPos = timeLine.bar.localPosition;
+            localPos.x = trackStart;
+            timeLine.bar.localPosition = localPos;
 
-			//Time line
-			float trackStart = GetTrackStart(time);
-			float trackEnd = GetTrackEnd(0, 0f, 0, false, false);
-
-			Vector3 localScale = timeLine.bar.localScale;
-			localScale.x = trackEnd - trackStart;
-			timeLine.bar.localScale = localScale;
-
-			Vector3 localPos = timeLine.bar.localPosition;
-			localPos.x = trackStart;
-			timeLine.bar.localPosition = localPos;
+            SetVisuals(nextVisuals);                    
 		}
 
 		public float GetPickupOffset()
@@ -817,7 +833,7 @@ namespace Incteractive
 			{
 				Observation observation = observations[i];
 				     
-				if (observation.time >= currentTime)
+				if (observation.time > currentTime)
 				{
 					observations.RemoveAt(i);
 				}
@@ -881,30 +897,32 @@ namespace Incteractive
 
             for (int i = 0, count = expectedObservation.itemProfiles.Count; i < count; i++)
             {
-                ItemProfile itemProfile = expectedObservation.itemProfiles[i];
+                ItemProfile expectedProfile = expectedObservation.itemProfiles[i];
 
-//                for (int s = currentItemProfiles.Count - 1; s >= 0; s--) 
-//                {
-//                    if (currentItemProfiles[s] == itemProfile)
-//                    {                        
-//                        break;
-//                    }
-//
-//                    if (s == 0)
-//                    {
-//                        Paradox paradox = new Paradox(visualsMeet, null, null);
-//                        currentParadoxes.Add(paradox);
-//                    }
-//                }
-
-                if (currentItemProfiles.Remove(itemProfile) == false)
+                if (currentItemProfiles.Remove(expectedProfile) == false)
                 {
-                    Paradox paradox = new Paradox(currentObservation.time, visualsMeet, itemProfile.position);
-                    currentParadoxes.Add(paradox);
+                    //Expected item not found, locate paradoxes
+                    for (int s = 0, currentCount = currentItemProfiles.Count; s < currentCount; s++)
+                    {
+                        ItemProfile currentProfile = currentItemProfiles[s];
+
+                        if (currentProfile.CompareSurface(expectedProfile))
+                        {                        
+                            for (int t = 0; t < expectedProfile.itemsInsideProfiles.Length; t++)
+                            {                                
+                                ItemProfile expectedInsideProfile = expectedProfile.itemsInsideProfiles[t];
+
+                                if (currentProfile.itemsInsideProfiles.Length <= t || expectedInsideProfile != currentProfile.itemsInsideProfiles[t])
+                                {
+                                    Paradox paradox = new Paradox(currentObservation.time, visualsMeet, expectedInsideProfile);
+                                    currentParadoxes.Add(paradox);
+                                }
+                            }        
+                        }
+                    }
                 }
             }
 		}
-
 
 		public void AddCurrentObservation()
 		{		
@@ -937,5 +955,6 @@ namespace Incteractive
 
 			return new Observation(currentTime, currentLocation, observedCharacters);
 		}
+
 	}
 }

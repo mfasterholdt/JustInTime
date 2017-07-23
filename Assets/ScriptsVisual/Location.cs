@@ -16,11 +16,16 @@ namespace Incteractive
 		{
 			for (int i = 0, count = transform.childCount; i < count; i++) 
 			{
-				Item item = transform.GetChild (i).GetComponent<Item> ();	
+                Transform t = transform.GetChild(i);
 
-                if (item)
-                { 
-                    items.Add(item);
+                if (t.gameObject.activeInHierarchy)
+                {
+                    Item item = t.GetComponent<Item>();	
+
+                    if (item && item.gameObject.activeInHierarchy)
+                    { 
+                        items.Add(item);
+                    }
                 }
 			}
 		}

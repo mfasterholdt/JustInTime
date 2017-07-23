@@ -94,15 +94,14 @@ namespace Incteractive
             {
                 Item item = FindItem(container);
 
-                if (item == null)
-                {
-                    //Make shadow item
-                    //TODO, how will this work with nested items?
-                    GameObject warning = GameObject.Instantiate(GameManager.instance.itemWarningPrefab, itemProfile.position, Quaternion.identity);                    
-                    character.currentWarnings.Add(warning);
-                    item = warning.GetComponent<Item>();
-                }
-
+//                if (item == null)
+//                {
+//                    //Make shadow item
+//                    //TODO, how will this work with nested items?
+//                    GameObject warning = GameObject.Instantiate(GameManager.instance.itemWarningPrefab, itemProfile.position, Quaternion.identity);                    
+//                    character.currentWarnings.Add(warning);
+//                    //item = warning.GetComponent<Item>();
+//                }
                 if (item)
                 {
                     container.itemsInside.Remove(item);

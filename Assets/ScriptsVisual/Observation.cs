@@ -26,5 +26,22 @@ namespace Incteractive
 
             this.itemProfiles = itemProfiles;
 		}
+
+        public override string ToString()
+        {
+            string s = time+"  "+location.gameObject.name;
+
+            for (int i = 0, count = itemProfiles.Count; i < count; i++)
+            {
+                s += itemProfiles[i]+"  ";
+            }
+
+            for (int i = 0, count = characters.Count; i < count; i++)
+            {
+                s += characters[i].name+"  ";
+            }
+
+            return s;
+        }
 	}
 }

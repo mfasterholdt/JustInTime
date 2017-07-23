@@ -31,13 +31,18 @@ namespace Incteractive
 		{
 			for (int i = 0, count = transform.childCount; i < count; i++) 
 			{
-				Item item = transform.GetChild (i).GetComponent<Item> ();	
+                Transform t = transform.GetChild(i);
 
-                if (item && item.gameObject.activeInHierarchy) 
-				{
-					itemsInside.Add (item);
-					item.itemAround = this;
-				}
+                if (t.gameObject.activeInHierarchy)
+                {
+                    Item item = t.GetComponent<Item>();	
+
+                    if (item)
+                    {
+                        itemsInside.Add(item);
+                        item.itemAround = this;
+                    }
+                }
 			}
 
 			initialItemsInside = new List<Item>(itemsInside);

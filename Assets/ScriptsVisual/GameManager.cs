@@ -10,7 +10,7 @@ namespace Incteractive
 	{
 		public Level initialLevel;
 		public GameObject characterPrefab;
-        public GameObject itemWarningPrefab;
+//        public GameObject itemWarningPrefab;
 
 		public GameObject characterTimelinePrefab;
 		public GameObject symbolEnterPrefab;
@@ -25,8 +25,12 @@ namespace Incteractive
 		public Material[] playerMaterials;
 		public Material whiteMaterial;
 
-		public GameObject paradoxParticles;
-        public GameObject paradoxItemParticles;
+//		public GameObject paradoxParticles;
+//        public GameObject paradoxItemParticles;
+        public ParadoxManager paradoxManager;
+
+        //public GameObject warningParticles;
+//        public GameObject warningItemParticles;
 
 		[Header("--- Timeline ---")]
 		public GameObject timeline;
@@ -46,6 +50,7 @@ namespace Incteractive
 
 		private List<Character> characters = new List<Character>();
 		private List<Item> allItems = new List<Item>();
+        private bool showDebug = false;
 
 		public enum State
 		{
@@ -59,9 +64,8 @@ namespace Incteractive
 			Action,
 			TimeTravelReady,
 			TimeTravel,
-			Paradox}
-
-		;
+			Paradox
+        };
 
 		public State state = State.None;
 
@@ -88,6 +92,7 @@ namespace Incteractive
 		void Start()
 		{
 			timelineBackgroundMaterial = timelineBackground.material;
+            paradoxManager.Setup(characters);
 
 			SetLoadState(initialLevel);
 		}
@@ -163,8 +168,8 @@ namespace Incteractive
             //----// Items //----//
             if (item && location == currentPlayer.currentLocation)
             {
-				if (item.isMovable)
-				{	
+                if (item.isMovable)
+                {   
 					//Item	
                     if (item.itemAround)
 					{						
@@ -201,8 +206,9 @@ namespace Incteractive
 //					else
 //					{
 						if (currentPlayer.inventory.Count > 0)
-						{							
-							Item itemFound = currentPlayer.inventory[currentPlayer.inventory.Count - 1];
+						{				
+                            Item itemFound = currentPlayer.inventory[currentPlayer.inventory.Count - 1];
+
 							ActionDrop actionDrop = new ActionDrop(currentTime, 1, itemFound, item); 
 							AddAction(actionDrop);
 							return true;
@@ -401,6 +407,7 @@ namespace Incteractive
 				if (action != null)
 				{
                     character.previousLocation = character.currentLocation;
+                                        
                     action.Perform(character);
 				}
 			}
@@ -464,7 +471,24 @@ namespace Incteractive
 
 			if (timeSynced)
 			{
-				if (timeForNextDecision > currentTime)
+                bool paradoxFound = false;
+
+                for (int i = 0, count = characters.Count; i < count; i++)
+                {
+                    Character character = characters[i];
+
+                    if (character.currentParadoxes.Count > 0)
+                    {
+                      paradoxFound = true;
+                      break;
+                    }
+                }
+
+                if (paradoxFound)
+                {
+                    SetParadoxState();
+                }
+				else if (timeForNextDecision > currentTime)
 				{
 					SetActionState();
 				}
@@ -533,6 +557,8 @@ namespace Incteractive
 		void SetTimeTravelReadyState()
 		{
 			playhead.gameObject.SetActive(false);
+
+            timeForNextDecision = 0;
 
 			state = State.TimeTravelReady;
 		}
@@ -664,29 +690,29 @@ namespace Incteractive
 			if (timeSynced)
 			{
 				//TODO this should be done differently 
-				for (int i = 0, count = characters.Count; i < count; i++)
-				{
-					Character character = characters[i];
-
-					if (character.currentParadoxes.Count > 0)
-					{
-						Paradox paradox = character.currentParadoxes[0];
-
-						if (paradox != null)
-						{					
-                            if (paradox.character)
-                            {                                
-                                paradoxParticles.gameObject.SetActive(true);
-                                paradoxParticles.transform.position = paradox.character.transform.position;
-                            }
-                            else
-                            {
-                                paradoxItemParticles.gameObject.SetActive(true);
-                                paradoxItemParticles.transform.position = paradox.position;
-                            }
-						}
-					}
-				}
+//				for (int i = 0, count = characters.Count; i < count; i++)
+//				{
+//					Character character = characters[i];
+//
+//					if (character.currentParadoxes.Count > 0)
+//					{
+//						Paradox paradox = character.currentParadoxes[0];
+//
+//						if (paradox != null)
+//						{					
+//                            if (paradox.character)
+//                            {                                
+//                                paradoxParticles.gameObject.SetActive(true);
+//                                paradoxParticles.transform.position = paradox.character.transform.position;
+//                            }
+//                            else
+//                            {
+//                                paradoxItemParticles.gameObject.SetActive(true);
+//                                paradoxItemParticles.transform.position = paradox.position;
+//                            }
+//						}
+//					}
+//				}
 
 				//Backwards
                 if (backwardsButton.value)
@@ -698,37 +724,87 @@ namespace Incteractive
 
 					backwardsButton.transform.localScale = Vector3.one;
 
-					paradoxParticles.gameObject.SetActive(false);
-                    paradoxItemParticles.gameObject.SetActive(false);
+//					paradoxParticles.gameObject.SetActive(false);
+//                    paradoxItemParticles.gameObject.SetActive(false);
 
 					SetBackwardsState();
 				}
 			}
 		}
 
-        void OnGUI()
+
+        int SimulateTime(int timeStart, float timeTarget, bool ignoreParadoxes)
         {
-            itemManager.Draw();
+            int time = timeStart;
+            bool paradoxFound = false;
+
+            while (time < timeTarget && (paradoxFound == false || ignoreParadoxes))
+            {
+                time++;
+
+                //Perform actions
+                for (int i = 0; i < characters.Count; i++)
+                {
+                    Character character = characters[i];
+
+                    Action action = null; 
+                    for (int k = 0, count = character.history.Count; k < count; k++)
+                    {
+                        Action a = character.history[k];
+                        //if (timeInstant > a.time)
+                        if (time > a.time && time < a.time + a.duration + 1)
+                        {
+                            action = a;
+                            break;
+                        }
+                    }
+
+                    if (action != null)
+                    {
+                        character.previousLocation = character.currentLocation;
+                        action.Perform(character);
+                    }
+                }
+
+                //Current Observations
+//                for (int i = 0, count = characters.Count; i < count; i++)
+//                {
+//                    Character character = characters[i];
+//
+//                    character.CreateCurrentObservation(time, characters);
+//                }
+
+                for (int i = 0, count = characters.Count; i < count; i++)
+                {
+                    Character character = characters[i];
+
+                    if (character != currentPlayer)
+                    {
+                        character.CreateCurrentObservation(time, characters);
+
+                        character.CheckObservations(time);
+
+                        if (character.currentParadoxes.Count > 0)
+                        {
+                            paradoxFound = true;
+                        }
+
+                        //Check crossing characters
+                        if (character.previousLocation != character.currentLocation && currentPlayer.currentLocation == character.previousLocation && currentPlayer.previousLocation == character.currentLocation)
+                        {                            
+                            Paradox paradox = new Paradox(time, character.visualsMeet, currentPlayer);
+                            character.currentParadoxes.Add(paradox);
+                            paradoxFound = true;
+                        }
+                    }
+                }
+            }   
+                
+            return time;
         }
 
 		void Update()
 		{
-			//Playhead
-			Vector3 playheadPos = playhead.localPosition;
-			playheadPos.x = currentTimeInterpolated;
-			playhead.localPosition = playheadPos;
-
-			//-----// Simulate Entire Timeline to Completion //-----// 
-            int endTime = 0;
-
-            for (int i = 0, count = characters.Count; i < count; i++)
-            {
-                int lastTime = characters[i].GetLastTime();    
-
-                if (lastTime > endTime)
-                    endTime = lastTime;
-            }
-
             //-----// Simulate Entire Timeline to currentTimeInterpolated //-----// 
             //TODO, this should only happen when playhead position has changed
 
@@ -744,37 +820,41 @@ namespace Incteractive
 			}
 
 			//Simulate
-            int timeInstant = 0;
+            int timeProgression = SimulateTime(0, currentTimeInterpolated, false);
+
+//            int timeInstant = 0;
+//
 //            bool paradoxFound = false;
-            while (timeInstant < currentTimeInterpolated)// && paradoxFound == false)
-			{
-				timeInstant++;
-
-				//Perform actions
-				for (int i = 0; i < characters.Count; i++)
-				{
-					Character character = characters[i];
-                    
-					Action action = null; 
-					for (int k = 0, count = character.history.Count; k < count; k++)
-					{
-						Action a = character.history[k];
-						//if (timeInstant > a.time)
-                        if (timeInstant > a.time && timeInstant < a.time + a.duration + 1)
-						{
-							action = a;
-                            break;
-						}
-					}
-
-					if (action != null)
-					{
-                        character.previousLocation = character.currentLocation;
-						action.Perform(character);
-					}
-				}
-
-                //Check observations
+//
+//            while (timeInstant < currentTimeInterpolated && paradoxFound == false)
+//			{
+//				timeInstant++;
+//
+//				//Perform actions
+//				for (int i = 0; i < characters.Count; i++)
+//				{
+//					Character character = characters[i];
+//                    
+//					Action action = null; 
+//					for (int k = 0, count = character.history.Count; k < count; k++)
+//					{
+//						Action a = character.history[k];
+//						//if (timeInstant > a.time)
+//                        if (timeInstant > a.time && timeInstant < a.time + a.duration + 1)
+//						{
+//							action = a;
+//                            break;
+//						}
+//					}
+//
+//					if (action != null)
+//					{
+//                        character.previousLocation = character.currentLocation;
+//						action.Perform(character);
+//					}
+//				}
+//
+//                //Check observations
 //                for (int i = 0, count = characters.Count; i < count; i++)
 //                {
 //                    Character character = characters[i];
@@ -790,72 +870,39 @@ namespace Incteractive
 //                    {
 //                        character.CheckObservations(timeInstant);
 //
-//                        //Check crossing characters
-////                        if (currentPlayer.currentLocation == character.previousLocation && currentPlayer.previousLocation == character.currentLocation)
-////                        {
-////                            Paradox paradox = new Paradox(character.visualsMeet, currentPlayer);
-////                            character.currentParadoxes.Add(paradox);
-////                            paradoxFound = true;
-////                        }
-//                    }
-//                }
-			}	
-
-            //Warning items
-//            for (int i = 0; i < characters.Count; i++)
-//            {
-//                Character character = characters[i];
-//                if (character != currentPlayer)
-//                {
-//                    List<Action> history = character.history;
-//                    for (int s = 0, count = history.Count; s < count; s++) 
-//                    {
-//                        ActionPickup actionPickup = history[s] as ActionPickup;
-//
-//                        if (actionPickup != null)
+//                        if (character.currentParadoxes.Count > 0)
 //                        {
-//                            bool check = actionPickup.Check();
-////                            Debug.Log(check);
+//                            paradoxFound = true;
+//                        }
+//
+//                        //Check crossing characters
+//                        if (currentPlayer.currentLocation == character.previousLocation && currentPlayer.previousLocation == character.currentLocation)
+//                        {
+//                            Paradox paradox = new Paradox(timeInstant, character.visualsMeet, currentPlayer);
+//                            character.currentParadoxes.Add(paradox);
+//                            paradoxFound = true;
 //                        }
 //                    }
 //                }
-//            }
+//			}	
 
-			//-----// Current State //-----//
-			//Items
-			for (int i = 0, count = allItems.Count; i < count; i++)
-			{
-				Item item = allItems[i];
-				item.UpdateItem();
-			}
 
-			//Characters
-			for (int i = 0, count = characters.Count; i < count; i++)
-			{
-				Character character = characters[i];
-				character.UpdateCharacter(currentTimeInterpolated);
-//				character.UpdateCharacter (currentTime, currentTimeInterpolated, timeForNextDecision, character == currentPlayer, false);
-			}
 
-			//Location Covers
-			for (int i = 0, length = currentLevel.locations.Length; i < length; i++)
-			{
-				Location location = currentLevel.locations[i];
-				if (location.cover)
-				{
-					location.cover.SetActive(true);
 
-					for (int j = 0, count = characters.Count; j < count; j++)
-					{
-						Character character = characters[j];
-						if (character.GetLocationAtTime(Mathf.RoundToInt(currentTimeInterpolated)) == location)
-						{
-							location.cover.SetActive(false);
-							break;
-						}
-					}
-				}
-			}
+            //Items
+            for (int i = 0, count = allItems.Count; i < count; i++)
+            {
+                Item item = allItems[i];
+                item.UpdateItem();
+            }
+
+            //Characters
+            for (int i = 0, count = characters.Count; i < count; i++)
+            {
+                Character character = characters[i];
+                character.UpdateCharacter(currentTimeInterpolated);
+                //              character.UpdateCharacter (currentTime, currentTimeInterpolated, timeForNextDecision, character == currentPlayer, false);
+            }
 
             UpdateMouseInput();
 
@@ -899,46 +946,178 @@ namespace Incteractive
                     break;
             }
 
-            //Foreshadow
-            while (timeInstant < endTime)// && paradoxFound == false)
+
+
+
+
+			//-----// Current State //-----//
+			
+
+			//Location Covers
+			for (int i = 0, length = currentLevel.locations.Length; i < length; i++)
+			{
+				Location location = currentLevel.locations[i];
+				if (location.cover)
+				{
+					location.cover.SetActive(true);
+
+					for (int j = 0, count = characters.Count; j < count; j++)
+					{
+						Character character = characters[j];
+						if (character.GetLocationAtTime(Mathf.RoundToInt(currentTimeInterpolated)) == location)
+						{
+							location.cover.SetActive(false);
+							break;
+						}
+					}
+				}
+			}
+
+            //---//Playhead
+
+            //Block on paradoxes
+            bool paradoxFound = paradoxManager.GetParadoxFound();
+            if (paradoxFound)
             {
-                timeInstant++;
-
-                //Perform actions
-                for (int i = 0; i < characters.Count; i++)
-                {
-                    Character character = characters[i];
-
-//                    int lastTime = character.GetLastTime();
-//
-//                    if (timeInstant < lastTime)
-//                    {
-                        Action action = null; 
-                        for (int k = 0, count = character.history.Count; k < count; k++)
-                        {
-                            Action a = character.history[k];
-                            if (timeInstant > a.time && timeInstant < a.time + a.duration + 1)
-                            {
-                                action = a;
-                                break;
-                            }
-                        }
-
-                        if (action != null)
-                        {
-                            character.previousLocation = character.currentLocation;
-                            action.Perform(character);
-                        }
-//                    }
-                }
+                currentTimeInterpolated = Mathf.Min(currentTimeInterpolated, timeProgression);
             }
+
+
+            Vector3 playheadPos = playhead.localPosition;
+            playheadPos.x = currentTimeInterpolated;
+            playhead.localPosition = playheadPos;
+
+            //-----// Simulate Entire Timeline to Completion //-----// 
+            int endTime = 0;
+
+            for (int i = 0, count = characters.Count; i < count; i++)
+            {
+                int lastTime = characters[i].GetLastTime();    
+
+                if (lastTime > endTime)
+                    endTime = lastTime;
+            }
+
+            SimulateTime(timeProgression, endTime, true);
+
+            //Warnings
+//            bool warningsFound = false;
+//
+//            while (timeInstant < endTime && warningsFound == false)
+//            {
+//                timeInstant++;
+//
+//                //Perform actions
+//                for (int i = 0; i < characters.Count; i++)
+//                {
+//                    Character character = characters[i];
+//
+//                    Action action = null; 
+//                    for (int k = 0, count = character.history.Count; k < count; k++)
+//                    {
+//                        Action a = character.history[k];
+//                        if (timeInstant > a.time && timeInstant < a.time + a.duration + 1)
+//                        {
+//                            action = a;
+//                            break;
+//                        }
+//                    }
+//
+//                    if (action != null)
+//                    {
+//                        character.previousLocation = character.currentLocation;
+//                        action.Perform(character);
+//                    }
+//                }
+//            }
+
+//            UpdateParadoxes();
+
+            paradoxManager.UpdateParadoxes(currentTimeInterpolated);
 
 			//Reload scene on Escape
 			if (Input.GetKeyDown(KeyCode.Escape))
 			{
 				SceneManager.LoadScene(SceneManager.GetActiveScene().name);
 			}
+
+            //Debug toggle
+            if(Input.GetKeyDown(KeyCode.D))
+            {
+                showDebug = !showDebug;
+            }
 		}
+            
+//        Paradox GetCurrentParadox()
+//        {
+//            for (int i = 0, count = characters.Count; i < count; i++)
+//            {
+//                Character character = characters[i];
+//
+//                for (int s = 0, paradoxCount = character.currentParadoxes.Count; s < paradoxCount; s++) 
+//                {
+//                    Paradox paradox = character.currentParadoxes[s];
+//                 
+////                    if (paradox != null)
+////                    {
+////                        return paradox;
+////                    }
+//                    if (paradox.character == null)
+//                    {
+//                        return paradox;
+//                    }
+//                    else if (paradox.time < timeForNextDecision)
+//                    {
+//                        return paradox;
+//                    }
+//                }
+//            }
+//
+//            return null;
+//        }
+
+        //TODO, currently limited to one paradox
+//        void UpdateParadoxes()
+//        {
+////            Paradox currentParadox = GetCurrentParadox();
+////
+////            if (currentParadox != null)
+////            {
+////                if (currentParadox.character)
+////                {                                
+////                    paradoxItemParticles.gameObject.SetActive(false);
+////                    warningItemParticles.gameObject.SetActive(false);
+////
+////                    paradoxParticles.gameObject.SetActive(true);
+////                    paradoxParticles.transform.position = currentParadox.character.transform.position;
+////                }
+////                else
+////                {
+////                    if (currentParadox.time > timeForNextDecision)
+////                    {
+////                        paradoxParticles.gameObject.SetActive(false);
+////                        paradoxItemParticles.gameObject.SetActive(false);
+////
+////                        warningItemParticles.gameObject.SetActive(true);
+////                        warningItemParticles.transform.position = currentParadox.position;
+////                    }
+////                    else
+////                    {   
+////                        paradoxParticles.gameObject.SetActive(false);
+////                        warningItemParticles.gameObject.SetActive(false);
+////                        
+////                        paradoxItemParticles.gameObject.SetActive(true);
+////                        paradoxItemParticles.transform.position = currentParadox.position;
+////                    }
+////                }
+////            }
+////            else
+////            {
+////                paradoxParticles.gameObject.SetActive(false);
+////                paradoxItemParticles.gameObject.SetActive(false);
+////                warningItemParticles.gameObject.SetActive(false);
+////            }
+//        }
 
 		void UpdateMouseInput()
 		{
@@ -1141,5 +1320,28 @@ namespace Incteractive
 
             characters.Add(newPlayer);		
 		}
+
+        //GUI
+        //TODO, move to gui utils if this get out of hand
+        void OnGUI()
+        {            
+            if (showDebug)
+            {
+                itemManager.Draw();
+                Character character = currentPlayer; 
+                DrawObservations(character);
+            }
+        }
+
+        void DrawObservations(Character character)
+        {
+            GUI.Label(new Rect(25, 10, 500, 20), "//Observations for "+character.name);  
+
+            for (int i = 0, count = character.observations.Count; i < count; i++)
+            {
+                Observation observation = character.observations[i];
+                GUI.Label(new Rect(25, 30 + 20 * i, 500, 20), observation.ToString());  
+            }
+        }
 	}
 }

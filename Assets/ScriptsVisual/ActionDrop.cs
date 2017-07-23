@@ -34,14 +34,16 @@ namespace Incteractive
 
                 if(foundContainer.GetProfile(false) == itemContainerProfile && character.inventory.Count > 0)
 				{
-					Item foundItem = character.inventory [character.inventory.Count -1];
+                    int lastIndex = character.inventory.Count - 1;
+
+                    Item foundItem = character.inventory[lastIndex];
 					//Item foundItem = foundContainer.itemsInside[0];
 
                     if (foundItem.GetProfile(false) == itemProfile) 
 					{						
-						character.inventory.Remove(foundItem);
+                        character.inventory.RemoveAt(lastIndex);
 
-						foundContainer.itemsInside.Add (foundItem);
+						foundContainer.itemsInside.Add(foundItem);
 
 						foundItem.itemAround = foundContainer;
 						foundItem.characterCarrying = null;

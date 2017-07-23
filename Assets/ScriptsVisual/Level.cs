@@ -55,10 +55,16 @@ namespace Incteractive
             for (int i = 0, length = transform.childCount; i < length; i++)
             {
                 Transform t = transform.GetChild(i);
-                Item item = t.GetComponent<Item>();
 
-                if (item)
-                    initialInventory.Add(item);
+                if (t.gameObject.activeInHierarchy)
+                {
+                    Item item = t.GetComponent<Item>();
+
+                    if (item)
+                    {
+                        initialInventory.Add(item);
+                    }
+                }
             }
 		}
 	}
